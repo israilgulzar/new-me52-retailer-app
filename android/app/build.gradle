@@ -3,6 +3,14 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 
+project.ext.envConfigFiles = [
+        devDebug: ".env.dev",
+        devRelease: ".env.dev",
+        testDebug: ".env.test",
+        testRelease: ".env.test",
+        prodDebug: ".env.prod",
+        prodRelease: ".env.prod"
+]
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -78,13 +86,15 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.me52retailerapp"
+    namespace "com.me52retailer"
     defaultConfig {
-        applicationId "com.me52retailerapp"
+        applicationId "com.me52retailer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        missingDimensionStrategy 'react-native-camera', 'mlkit'
     }
     signingConfigs {
         debug {
@@ -106,15 +116,10 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
-    project.ext.envConfigFiles = [
-    devDebug: ".env.dev",
-    devRelease: ".env.dev",
-    testDebug: ".env.test",
-    testRelease: ".env.test",
-    prodDebug: ".env.prod",
-    prodRelease: ".env.prod"
-]
+
 }
+
+
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
