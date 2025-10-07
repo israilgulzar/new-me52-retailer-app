@@ -1,11 +1,13 @@
 buildscript {
     ext {
-        buildToolsVersion = "36.0.0"
+        buildToolsVersion = "35.0.0"
         minSdkVersion = 24
-        compileSdkVersion = 36
-        targetSdkVersion = 36
+        compileSdkVersion = 35
+        targetSdkVersion = 35
+        cmakeVersion = "3.22.1"
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.1.20"
+        kotlin_version = kotlinVersion
     }
     repositories {
         google()
@@ -14,9 +16,15 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle")
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
-
-         //classpath 'com.google.android.gms:strict-version-matcher-plugin:1.2.1'
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+        classpath 'com.google.android.gms:strict-version-matcher-plugin:1.2.1'
+        classpath 'com.google.gms:google-services:4.3.15'
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 

@@ -1,16 +1,8 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
-apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+apply plugin: "com.google.gms.google-services"
 
-project.ext.envConfigFiles = [
-        devDebug: ".env.dev",
-        devRelease: ".env.dev",
-        testDebug: ".env.test",
-        testRelease: ".env.test",
-        prodDebug: ".env.prod",
-        prodRelease: ".env.prod"
-]
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -91,12 +83,19 @@ android {
         applicationId "com.me52retailer"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
-
+        versionCode 3
+        versionName "1.1"
         missingDimensionStrategy 'react-native-camera', 'mlkit'
     }
     signingConfigs {
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }
         debug {
             storeFile file('debug.keystore')
             storePassword 'android'
@@ -105,29 +104,51 @@ android {
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
-        release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+    debug {
+        signingConfig signingConfigs.debug
+    }
+    release {
+        signingConfig signingConfigs.release
+
+        // Enable code shrinking & obfuscation
+        // minifyEnabled true
+        // shrinkResources false
+
+        // // Use ProGuard/R8 rules
+        // proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+
+        // Custom APK naming
+        applicationVariants.all { variant ->
+            variant.outputs.all { output ->
+                def buildTypeName = variant.buildType.name
+                def apkName = buildTypeName == "debug" 
+                    ? "me52retailerapp-debug.apk" 
+                    : "me52retailerapp.apk"
+                outputFileName = apkName
+            }
         }
     }
-
 }
 
-
+    externalNativeBuild {
+        cmake {
+            version "3.22.1"
+        }
+    }
+}
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.0')
+    implementation project(':react-native-camera')
+        
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
     }
 }
+
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
