@@ -204,6 +204,7 @@ import Input from './Input';
 import { useTheme } from '../theme/ThemeProvider';
 import CaretDownWhite from "../assets/caret-down-white.svg"
 import { getCountryCallingCode } from 'libphonenumber-js';
+import { Control, Controller } from 'react-hook-form';
 
 interface PhoneumberProps {
   label?: string;
@@ -220,10 +221,14 @@ interface PhoneumberProps {
   };
   style?: ViewStyle,
   readonly?: boolean,
-  maxLength?: number
+  maxLength?: number,
+  control?: Control<any>;
+  phoneNumberName?: string;
+  countryCodeName?: string;
+  rules?: any;
 }
 
-const PhoneNumber = ({ value, label, error, placeholder, name, style, onChangeText, readonly, maxLength }: PhoneumberProps) => {
+const PhoneNumber = ({ value, label, error, placeholder, name, style, onChangeText, readonly, maxLength, control, phoneNumberName, countryCodeName, rules }: PhoneumberProps) => {
   // const [phoneNumber, setPhoneNumber] = useState('');
   // const [countryCode, setCountryCode] = useState<CountryCode>('IN');
   const [callingCode, setCallingCode] = useState('91');
@@ -248,7 +253,59 @@ const PhoneNumber = ({ value, label, error, placeholder, name, style, onChangeTe
     setModalVisible(false);
   };
 
-  return (
+  return (control && phoneNumberName) ? (
+    <Controller
+      control={control}
+      name={phoneNumberName}
+      rules={rules}
+      render={({ field: { value: phoneVal, onChange: onChangePhone } }) =>
+        <View style={[styles.container, style]}>
+          {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
+
+          <View style={styles.phoneContainer}>
+            <TouchableOpacity
+              style={[styles.countryPickerButton, { backgroundColor: colors.orange, flexDirection: 'row', height: 51, alignItems: 'center', justifyContent: 'space-between', top: error ? -10 : 0 }]}
+              onPress={() => setModalVisible(true)}
+              activeOpacity={1}
+            >
+              <Text style={[styles.callingCode, { color: "#fff", fontSize: callingCode.length >= 4 ? 14 : 16 }]}>+{callingCode}</Text>
+              <CaretDownWhite />
+            </TouchableOpacity>
+
+            <Input
+              style={styles.input}
+              placeholder={placeholder}
+              value={phoneVal}
+              onChangeText={(e) => onChangePhone(e, name?.phoneNumber)}
+              keyboardType="number"
+              phoneNumberPadding={90}
+              maxLength={maxLength}
+              error={error}
+              control={control}
+              name={phoneNumberName}
+              rules={rules}
+            />
+          </View>
+
+          <CountryPicker
+            {...{
+              withFilter: true,
+              withFlag: true,
+              withCallingCode: true,
+              withModal: true,
+              withEmoji: true,
+              onSelect: onSelectCountry,
+              countryCode: value.countryCode,
+            }}
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+            containerButtonStyle={{ display: 'none' }}
+          />
+          {/* {error && <Text style={{ color: colors.error, fontSize: 13, marginTop: 2 }}>{error}</Text>} */}
+        </View>
+      }
+    />
+  ) : (
     <View style={[styles.container, style]}>
       {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
 

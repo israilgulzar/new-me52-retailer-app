@@ -439,7 +439,7 @@ const Forms = ({
 			checkErrors(field, value);
 		}
 		// also request RHF validation run for that field
-		trigger(field.key).catch(() => {});
+		trigger(field.key).catch(() => { });
 	}, [setValue, onChangeText, isCheckError, checkErrors, trigger]);
 
 	// Render function (keeps your rendering structure but uses Controller for RHF)
@@ -460,118 +460,94 @@ const Forms = ({
 				case 'text':
 				case 'number':
 					return (
-						<Controller
-							control={control}
+						<Input
+							key={field.key}
 							name={field.key}
-							defaultValue={field.value}
+							control={control}
 							rules={{
 								required: field.required ? `${field.label} is required` : false,
 								validate: (val: any) => {
-									// keep IMEI/pincode/other validations via checkErrors (we still call it), but also provide immediate validate
 									if (['imei1', 'imei2'].includes(field.key)) {
 										if (!val) return `${field.label} is required`;
 										if (!/^\d{15}$/.test(val)) return `${field.label} must be 15 digits`;
 									}
 									if (field.key === 'pincode') {
 										if (!val) return `${field.label} is required`;
-										if (val?.length !== 6) return `${field.label} should of 6 digits`;
+										if (val?.length !== 6) return `${field.label} should be 6 digits`;
 									}
 									return true;
-								},
+								}
 							}}
-							render={({ field: { onChange, value } }) => (
-								<Input
-									key={field.key}
-									value={value}
-									maxLength={field.maxLength}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									placeholder={field.label}
-									error={errors[field.key]}
-									secureTextEntry={false}
-									keyboardType={field.keyboardType || field.type}
-									style={styles.container}
-									inputStyle={field.key === 'address' ? { height: getHeight(100) } : undefined}
-									readonly={field.readonly}
-									icon={field.showIcon}
-									formData={formFields}
-									autoCapitalize={field.autoCapitalize}
-									autoCorrect={field.autoCorrect}
-								/>
-							)}
+							value={field.value}
+							maxLength={field.maxLength}
+							placeholder={field.label}
+							error={errors[field.key]}
+							secureTextEntry={false}
+							keyboardType={field.keyboardType || field.type}
+							style={styles.container}
+							inputStyle={field.key === 'address' ? { height: getHeight(100) } : undefined}
+							readonly={field.readonly}
+							icon={field.showIcon}
+							formData={formFields}
+							autoCapitalize={field.autoCapitalize}
+							autoCorrect={field.autoCorrect}
+							onChangeText={(e) => updateField(field, e)} // keep your extra side-effect
 						/>
 					);
 
 				case 'textArea':
 					return (
-						<Controller
-							control={control}
+						<TextArea
+							key={field.key}
 							name={field.key}
-							defaultValue={field.value}
+							control={control}
 							rules={{ required: field.required ? `${field.label} is required` : false }}
-							render={({ field: { onChange, value } }) => (
-								<TextArea
-									value={value}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									placeholder={field.label}
-									key={field.key}
-									style={styles.container}
-									error={errors[field.key]}
-								/>
-							)}
+							value={field.value}
+							placeholder={field.label}
+							style={styles.container}
+							error={errors[field.key]}
+							onChangeText={(e) => updateField(field, e)} // still call your extra function
 						/>
 					);
 
 				case 'phonenumber':
 					return (
-						<Controller
+						<PhoneNumber
+							key={field.key}
+							phoneNumberName={field.key}
 							control={control}
-							name={field.key}
-							defaultValue={field.value}
 							rules={{
 								required: field.required ? `${field.label} is required` : false,
 							}}
-							render={({ field: { onChange, value } }) => (
-								<PhoneNumber
-									key={field.key}
-									onChangeText={(e: any, key?: any) => {
-										// PhoneNumber component passes both value and internal key (countryCode/phoneNumber)
-										// We ensure updateField is called with the final object expected by your original logic
-										onChange(e);
-										updateField(field, e, key);
-									}}
-									error={errors[field.key]}
-									value={{
-										countryCode:
-											field.key === 'phoneNumber'
-												? field.value?.['countryCode']
-												: field.value?.['alternateCountryCode'],
-										phoneNumber:
-											field.key === 'phoneNumber'
-												? field.value?.['phoneNumber']
-												: field.value?.['alternateNumber'],
-									}}
-									placeholder={field.label}
-									name={{
-										countryCode:
-											field.key === 'phoneNumber'
-												? 'countryCode'
-												: 'alternateCountryCode',
-										phoneNumber:
-											field.key === 'phoneNumber'
-												? 'phoneNumber'
-												: 'alternateNumber',
-									}}
-									readonly={field.readonly}
-									maxLength={field.maxLength}
-								/>
-							)}
+							onChangeText={(e: any, key?: any) => {
+								updateField(field, e, key);
+							}}
+							error={errors[field.key]}
+							value={{
+								countryCode:
+									field.key === 'phoneNumber'
+										? field.value?.['countryCode']
+										: field.value?.['alternateCountryCode'],
+								phoneNumber:
+									field.key === 'phoneNumber'
+										? field.value?.['phoneNumber']
+										: field.value?.['alternateNumber'],
+							}}
+							placeholder={field.label}
+							name={{
+								countryCode:
+									field.key === 'phoneNumber'
+										? 'countryCode'
+										: 'alternateCountryCode',
+								phoneNumber:
+									field.key === 'phoneNumber'
+										? 'phoneNumber'
+										: 'alternateNumber',
+							}}
+							readonly={field.readonly}
+							maxLength={field.maxLength}
 						/>
+
 					);
 
 				case 'countrySelection':
