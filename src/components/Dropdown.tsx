@@ -25,6 +25,7 @@ import CrossBox from "../assets/cross2.svg"
 import CheckWithoutBorder from "../assets/check-svgrepo-com 1.svg"
 import { getHeight, moderateScale } from '../common/constants';
 import { commonStyle } from '../theme';
+import { Controller } from 'react-hook-form';
 
 interface DropdownProps {
 	label?: string;
@@ -40,11 +41,17 @@ interface DropdownProps {
 	apiDetails?: Record<string, any>;
 	readonly?: boolean;
 	placeholder?: string;
+	rules?: any;
+	control?: any;
+	name?: string;
 }
 
 type API_STATUS = 'LOADING' | 'SUCCESS' | 'ERROR';
 
 const Dropdown = ({
+	control,
+	name,
+	rules,
 	label,
 	error,
 	onChangeText,
@@ -258,11 +265,13 @@ const Dropdown = ({
 		}
 	}, []);
 
-	const handleOnChange = (value: any) => {
+	const handleOnChange = (value: any, onChange: (v: any) => void) => {
 		console.log("DROPDOWN CHANGE");
 		console.log(value as any);
 		onChangeText?.(value as any);
-		onChangeFullText?.(items.find(i => i.value == value));
+		onChangeFullText?.(items?.find(i => i.value == value));
+		// ✅ Update RHF form state
+		onChange(value);
 		// Show features if keytype is selected
 		if (apiDetails?.key && apiDetails?.key === 'keyType') {
 			const findItem = items.find(val => val.value === value);
@@ -319,92 +328,183 @@ const Dropdown = ({
 		);
 	}
 
-	return (
-		<View style={[style, styles.container]}>
-			{label && (
-				<Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-			)}
-			<DropDownPicker
-				items={items}
-				setItems={setItems}
-				value={selectedValue as any}
-				placeholder={placeholder}
-				placeholderStyle={{ color: colors.textDarker }}
-				open={open}
-				setOpen={setOpen}
-				setValue={setSelectedValue}
-				zIndex={3001}
-				zIndexInverse={1000}
-				multiple={multiple}
-				listMode={listModal ?? 'SCROLLVIEW'}
-				searchable={search}
-				searchPlaceholder={`Search ${placeholder}`}
-				onChangeValue={e => {
-					if (e != value)
-						handleOnChange(e);
-				}}
-				disabled={readonly}
-				ArrowDownIconComponent={() => <CaretDown />}
-				ArrowUpIconComponent={() => <CaretUp />}
-				arrowIconContainerStyle={{
-					marginRight: 20,
-				}}
-				modalProps={{
-					animationType: 'slide',
-					presentationStyle: 'pageSheet',
-				}}
-				modalContentContainerStyle={{
-					backgroundColor: '#fff',
-					borderWidth: 0,
-					marginHorizontal: scaleSM(20),
-					borderTopLeftRadius: 20,
-					borderTopRightRadius: 20,
-					flexGrow: 1,
-					overflow: 'hidden',
-				}}
-				renderListItem={apiDetails?.key == 'keytype' ? renderListItem : undefined}
-				searchContainerStyle={[
-					{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 },
-				]}
-				searchTextInputStyle={[
-					boxShadow,
-					{
-						borderWidth: 0,
-						backgroundColor: '#fff',
-						paddingHorizontal: scaleSM(15),
-						paddingVertical: scaleSM(5),
-						marginHorizontal: scaleSM(5),
-					},
-				]}
-				ActivityIndicatorComponent={() => <ActivityIndicator size={36} />}
-				style={[
-					{
-						backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
-						borderColor: error && colors.error,
-						// shadowColor: theme === 'dark' ? colors.primary : undefined,
-						borderWidth: error ? 1 : 0,
-						height: 51,
-						// marginBottom: 10,
-						// zIndex: 3000
-					},
-					boxShadow,
-					borderRadius,
-				]}
-				onOpen={loadData}
-				dropDownContainerStyle={[
-					{
-						position: 'relative',
-						top: 2,
-						maxHeight: 200,
-						backgroundColor: '#fff',
-						borderWidth: 0,
-					},
-					boxShadow,
-				]}
+	return (control && name) ?
+		(
+			<Controller
+				control={control}
+				name={name}
+				rules={rules}
+				render={({ field: { onChange, value }, fieldState: { error: fieldError } }) => (
+
+					<View style={[style, styles.container]}>
+						{label && (
+							<Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+						)}
+						<DropDownPicker
+							items={items}
+							setItems={setItems}
+							value={value}
+							placeholder={placeholder}
+							placeholderStyle={{ color: colors.textDarker }}
+							open={open}
+							setOpen={setOpen}
+							setValue={setSelectedValue}
+							zIndex={3001}
+							zIndexInverse={1000}
+							multiple={multiple}
+							listMode={listModal ?? 'SCROLLVIEW'}
+							searchable={search}
+							searchPlaceholder={`Search ${placeholder}`}
+							onChangeValue={(v) => handleOnChange(v, onChange)}
+							disabled={readonly}
+							ArrowDownIconComponent={() => <CaretDown />}
+							ArrowUpIconComponent={() => <CaretUp />}
+							arrowIconContainerStyle={{
+								marginRight: 20,
+							}}
+							modalProps={{
+								animationType: 'slide',
+								presentationStyle: 'pageSheet',
+							}}
+							modalContentContainerStyle={{
+								backgroundColor: '#fff',
+								borderWidth: 0,
+								marginHorizontal: scaleSM(20),
+								borderTopLeftRadius: 20,
+								borderTopRightRadius: 20,
+								flexGrow: 1,
+								overflow: 'hidden',
+							}}
+							renderListItem={apiDetails?.key == 'keytype' ? renderListItem : undefined}
+							searchContainerStyle={[
+								{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 },
+							]}
+							searchTextInputStyle={[
+								boxShadow,
+								{
+									borderWidth: 0,
+									backgroundColor: '#fff',
+									paddingHorizontal: scaleSM(15),
+									paddingVertical: scaleSM(5),
+									marginHorizontal: scaleSM(5),
+								},
+							]}
+							ActivityIndicatorComponent={() => <ActivityIndicator size={36} />}
+							style={[
+								{
+									backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+									borderColor: error && colors.error,
+									// shadowColor: theme === 'dark' ? colors.primary : undefined,
+									borderWidth: error ? 1 : 0,
+									height: 51,
+									// marginBottom: 10,
+									// zIndex: 3000
+								},
+								boxShadow,
+								borderRadius,
+							]}
+							onOpen={loadData}
+							dropDownContainerStyle={[
+								{
+									position: 'relative',
+									top: 2,
+									maxHeight: 200,
+									backgroundColor: '#fff',
+									borderWidth: 0,
+								},
+								boxShadow,
+							]}
+						/>
+						{error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+					</View>
+				)}
 			/>
-			{error && <Text style={[{ color: colors.error }]}>{error}</Text>}
-		</View>
-	);
+		) : (
+			<View style={[style, styles.container]}>
+				{label && (
+					<Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+				)}
+				<DropDownPicker
+					items={items}
+					setItems={setItems}
+					value={selectedValue as any}
+					placeholder={placeholder}
+					placeholderStyle={{ color: colors.textDarker }}
+					open={open}
+					setOpen={setOpen}
+					setValue={setSelectedValue}
+					zIndex={3001}
+					zIndexInverse={1000}
+					multiple={multiple}
+					listMode={listModal ?? 'SCROLLVIEW'}
+					searchable={search}
+					searchPlaceholder={`Search ${placeholder}`}
+					onChangeValue={e => {
+						if (e != value)
+							handleOnChange(e, () => { });
+					}}
+					disabled={readonly}
+					ArrowDownIconComponent={() => <CaretDown />}
+					ArrowUpIconComponent={() => <CaretUp />}
+					arrowIconContainerStyle={{
+						marginRight: 20,
+					}}
+					modalProps={{
+						animationType: 'slide',
+						presentationStyle: 'pageSheet',
+					}}
+					modalContentContainerStyle={{
+						backgroundColor: '#fff',
+						borderWidth: 0,
+						marginHorizontal: scaleSM(20),
+						borderTopLeftRadius: 20,
+						borderTopRightRadius: 20,
+						flexGrow: 1,
+						overflow: 'hidden',
+					}}
+					renderListItem={apiDetails?.key == 'keytype' ? renderListItem : undefined}
+					searchContainerStyle={[
+						{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 },
+					]}
+					searchTextInputStyle={[
+						boxShadow,
+						{
+							borderWidth: 0,
+							backgroundColor: '#fff',
+							paddingHorizontal: scaleSM(15),
+							paddingVertical: scaleSM(5),
+							marginHorizontal: scaleSM(5),
+						},
+					]}
+					ActivityIndicatorComponent={() => <ActivityIndicator size={36} />}
+					style={[
+						{
+							backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+							borderColor: error && colors.error,
+							// shadowColor: theme === 'dark' ? colors.primary : undefined,
+							borderWidth: error ? 1 : 0,
+							height: 51,
+							// marginBottom: 10,
+							// zIndex: 3000
+						},
+						boxShadow,
+						borderRadius,
+					]}
+					onOpen={loadData}
+					dropDownContainerStyle={[
+						{
+							position: 'relative',
+							top: 2,
+							maxHeight: 200,
+							backgroundColor: '#fff',
+							borderWidth: 0,
+						},
+						boxShadow,
+					]}
+				/>
+				{error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+			</View>
+		);
 };
 
 const styles = StyleSheet.create({

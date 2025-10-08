@@ -7,9 +7,11 @@ import { borderRadius, boxShadow } from '../styles/styles';
 import CaretDown from "../assets/caret-down.svg"
 import CaretUp from "../assets/caret-up.svg"
 import { scaleSM } from '../utility/helpers';
+import { Controller } from 'react-hook-form';
 
 
 interface LocationPickerProps {
+  control?: any;
   error?: string,
   onChangeText: (text: any, key: string) => void,
   value: string,
@@ -20,10 +22,15 @@ interface LocationPickerProps {
     state?: string
   },
   style?: ViewStyle
+  rules?: any;
+  defaultValue?: any;
 }
 
 
-const CityPicker = ({ error, onChangeText, value, name, readonly, parentValue, style }: LocationPickerProps) => {
+const CityPicker = ({ error, onChangeText, value, readonly, parentValue, style, control,
+  name,
+  rules,
+  defaultValue, }: LocationPickerProps) => {
 
   const [cities, setCities] = useState([] as any);
 
@@ -72,63 +79,128 @@ const CityPicker = ({ error, onChangeText, value, name, readonly, parentValue, s
     // onChangeText(allCities && allCities.length !== 0 ? null : 'no_city', 'city')
   }
 
-  return (
-    <View style={[styles.container]}>
-      <DropDownPicker
-        open={openCity}
-        setOpen={setOpenCity}
-        value={selectedCity}
-        setValue={setSelectedCity}
-        items={cities}
-        disabled={readonly}
-        placeholder="Select city"
-        placeholderStyle={{ color: colors.textDarker }}
-        zIndex={1000}
-        zIndexInverse={3000}
-        listMode='MODAL'
-        searchable
-        searchPlaceholder='Search City'
-        onChangeValue={(e) => {
-          if (e != value) {
-            onChangeText(e, 'city')
-          }
-        }}
-        modalProps={{
-          animationType: 'slide',
-          presentationStyle: 'pageSheet'
-        }}
-        modalContentContainerStyle={{
-          backgroundColor: "#fff",
-          borderWidth: 0,
-          marginHorizontal: scaleSM(20),
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          flexGrow: 1,
-          overflow: "hidden"
-        }}
-        searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
-        searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
-        ArrowDownIconComponent={() => (
-          <CaretDown />
+  return (control && name) ?
+    (
+      <Controller
+        control={control}
+        name={name}
+        defaultValue={defaultValue || ''}
+        rules={rules}
+        render={({ field: { onChange, value } }) => (
+          <View style={[styles.container]}>
+            <DropDownPicker
+              open={openCity}
+              setOpen={setOpenCity}
+              value={value}
+              setValue={setSelectedCity}
+              items={cities}
+              disabled={readonly}
+              placeholder="Select city"
+              placeholderStyle={{ color: colors.textDarker }}
+              zIndex={1000}
+              zIndexInverse={3000}
+              listMode='MODAL'
+              searchable
+              searchPlaceholder='Search City'
+              onChangeValue={(e) => {
+                if (e != value) {
+                  onChange(e, 'city')
+                }
+              }}
+              modalProps={{
+                animationType: 'slide',
+                presentationStyle: 'pageSheet'
+              }}
+              modalContentContainerStyle={{
+                backgroundColor: "#fff",
+                borderWidth: 0,
+                marginHorizontal: scaleSM(20),
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                flexGrow: 1,
+                overflow: "hidden"
+              }}
+              searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
+              searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
+              ArrowDownIconComponent={() => (
+                <CaretDown />
+              )}
+              ArrowUpIconComponent={() => (
+                <CaretUp />
+              )}
+              arrowIconContainerStyle={{
+                marginRight: 20,
+              }}
+              onOpen={() => loadCity(parentValue?.country as string, parentValue?.state as string)}
+              style={[{
+                backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+                borderColor: error && colors.error,
+                // shadowColor: theme === 'dark' ? colors.primary : undefined,
+                borderWidth: error ? 1 : 0,
+                // marginBottom: 10
+              }, boxShadow, borderRadius]}
+            />
+            {error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+          </View>
         )}
-        ArrowUpIconComponent={() => (
-          <CaretUp />
-        )}
-        arrowIconContainerStyle={{
-          marginRight: 20,
-        }}
-        onOpen={() => loadCity(parentValue?.country as string, parentValue?.state as string)}
-        style={[{
-          backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
-          borderColor: error && colors.error,
-          // shadowColor: theme === 'dark' ? colors.primary : undefined,
-          borderWidth: error ? 1 : 0,
-          // marginBottom: 10
-        }, boxShadow, borderRadius]}
       />
-      {error && <Text style={[{ color: colors.error }]}>{error}</Text>}
-    </View>
-  );
+    ) : (
+      <View style={[styles.container]}>
+        <DropDownPicker
+          open={openCity}
+          setOpen={setOpenCity}
+          value={selectedCity}
+          setValue={setSelectedCity}
+          items={cities}
+          disabled={readonly}
+          placeholder="Select city"
+          placeholderStyle={{ color: colors.textDarker }}
+          zIndex={1000}
+          zIndexInverse={3000}
+          listMode='MODAL'
+          searchable
+          searchPlaceholder='Search City'
+          onChangeValue={(e) => {
+            if (e != value) {
+              onChangeText(e, 'city')
+            }
+          }}
+          modalProps={{
+            animationType: 'slide',
+            presentationStyle: 'pageSheet'
+          }}
+          modalContentContainerStyle={{
+            backgroundColor: "#fff",
+            borderWidth: 0,
+            marginHorizontal: scaleSM(20),
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            flexGrow: 1,
+            overflow: "hidden"
+          }}
+          searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
+          searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
+          ArrowDownIconComponent={() => (
+            <CaretDown />
+          )}
+          ArrowUpIconComponent={() => (
+            <CaretUp />
+          )}
+          arrowIconContainerStyle={{
+            marginRight: 20,
+          }}
+          onOpen={() => loadCity(parentValue?.country as string, parentValue?.state as string)}
+          style={[{
+            backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+            borderColor: error && colors.error,
+            // shadowColor: theme === 'dark' ? colors.primary : undefined,
+            borderWidth: error ? 1 : 0,
+            // marginBottom: 10
+          }, boxShadow, borderRadius]}
+        />
+        {error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+      </View>
+    );
 };
 
 const styles = StyleSheet.create({

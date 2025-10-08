@@ -253,11 +253,15 @@ const PhoneNumber = ({ value, label, error, placeholder, name, style, onChangeTe
     setModalVisible(false);
   };
 
+  console.log(value, "--->>>");
+  
+
   return (control && phoneNumberName) ? (
     <Controller
       control={control}
       name={phoneNumberName}
       rules={rules}
+      defaultValue={value?.phoneNumber}
       render={({ field: { value: phoneVal, onChange: onChangePhone } }) =>
         <View style={[styles.container, style]}>
           {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}

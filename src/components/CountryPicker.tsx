@@ -7,17 +7,21 @@ import CaretDown from "../assets/caret-down.svg"
 import CaretUp from "../assets/caret-up.svg"
 import { scaleSM } from '../utility/helpers';
 import { useCountry } from '../context/Country';
+import { Controller } from 'react-hook-form';
 
 interface LocationPickerProps {
+  control?: any; // optional, RHF control
   error?: string,
   onChangeText: (text: any, key: string) => void,
   value: string,
   name?: string,
   readonly?: boolean,
-  style?: ViewStyle
+  style?: ViewStyle,
+  rules?: any,
+  defaultValue?: any
 }
 
-const CountryPicker = ({ error, onChangeText, value, readonly, style }: LocationPickerProps) => {
+const CountryPicker = ({ error, onChangeText, value, readonly, style, control, name, rules, defaultValue }: LocationPickerProps) => {
 
   const [countries, setCountries] = useState([] as any);
   const [selectedCountry, setSelectedCountry] = useState<any>('IN');
@@ -37,63 +41,136 @@ const CountryPicker = ({ error, onChangeText, value, readonly, style }: Location
 
   }, [value]);
 
-  return (
-    <View style={[styles.container, style]}>
-      <DropDownPicker
-        open={openCountry}
-        setOpen={setOpenCountry}
-        value={selectedCountry}
-        setValue={setSelectedCountry}
-        items={countries}
-        placeholder="Select country"
-        placeholderStyle={{ color: colors.textDarker }}
-        zIndex={3000}
-        zIndexInverse={1000}
-        listMode='MODAL'
-        searchable
-        disabled={readonly}
-        searchPlaceholder='Search Country'
-        onChangeValue={(e) => {
-          if (e != value) {
-            onChangeText(e, "country")
-          }
-        }}
-        ArrowDownIconComponent={() => (
-          <CaretDown />
-        )}
-        ArrowUpIconComponent={() => {
-          <CaretUp />
-        }}
-        modalProps={{
-          animationType: 'slide',
-          presentationStyle: 'pageSheet'
-        }}
-        modalContentContainerStyle={{
-          backgroundColor: "#fff",
-          borderWidth: 0,
-          marginHorizontal: scaleSM(20),
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          flexGrow: 1,
-          overflow: "hidden"
-        }}
-        searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
-        searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
-        arrowIconContainerStyle={{
-          marginRight: 20,
-        }}
-        style={[{
-          backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
-          borderColor: error && colors.error,
-          // shadowColor: theme === 'dark' ? colors.primary : undefined,
-          borderWidth: error ? 1 : 0,
-          // marginBottom: 10
-        }, boxShadow, borderRadius]}
+  return (control && name) ?
+    (
+      <Controller
+        control={control}
+        name={name}
+        defaultValue={defaultValue || ''}
+        rules={rules}
+        render={({ field: { onChange, value } }) =>
+          <View style={[styles.container, style]}>
+            <DropDownPicker
+              open={openCountry}
+              setOpen={setOpenCountry}
+              value={value}
+              setValue={setSelectedCountry}
+              items={countries}
+              placeholder="Select country"
+              placeholderStyle={{ color: colors.textDarker }}
+              zIndex={3000}
+              zIndexInverse={1000}
+              listMode="MODAL"
+              searchable
+              disabled={readonly}
+              searchPlaceholder="Search Country"
+              onChangeValue={(val) => {
+                if (val !== value) {
+                  onChange(val);
+                }
+              }}
+              ArrowDownIconComponent={() => <CaretDown />}
+              ArrowUpIconComponent={() => <CaretUp />}
+              modalProps={{
+                animationType: 'slide',
+                presentationStyle: 'pageSheet',
+              }}
+              modalContentContainerStyle={{
+                backgroundColor: '#fff',
+                borderWidth: 0,
+                marginHorizontal: scaleSM(20),
+                borderTopLeftRadius: 20,
+                borderTopRightRadius: 20,
+                flexGrow: 1,
+                overflow: 'hidden',
+              }}
+              searchContainerStyle={{
+                borderBottomWidth: 0,
+                marginTop: scaleSM(15),
+                padding: 0,
+              }}
+              searchTextInputStyle={[
+                boxShadow,
+                {
+                  borderWidth: 0,
+                  backgroundColor: '#fff',
+                  paddingHorizontal: scaleSM(15),
+                  paddingVertical: scaleSM(5),
+                  marginHorizontal: scaleSM(5),
+                },
+              ]}
+              arrowIconContainerStyle={{ marginRight: 20 }}
+              style={[
+                {
+                  backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                  borderColor: error ? colors.error : '#ccc',
+                  borderWidth: error ? 1 : 0,
+                },
+                boxShadow,
+                borderRadius,
+              ]}
+            />
+            {error && <Text style={[{ color: colors.error, marginTop: 4 }]}>{error}</Text>}
+          </View>
+        }
       />
-      {error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+    ) : (
+      <View style={[styles.container, style]}>
+        <DropDownPicker
+          open={openCountry}
+          setOpen={setOpenCountry}
+          value={selectedCountry}
+          setValue={setSelectedCountry}
+          items={countries}
+          placeholder="Select country"
+          placeholderStyle={{ color: colors.textDarker }}
+          zIndex={3000}
+          zIndexInverse={1000}
+          listMode='MODAL'
+          searchable
+          disabled={readonly}
+          searchPlaceholder='Search Country'
+          onChangeValue={(e) => {
+            if (e != value) {
+              onChangeText(e, "country")
+            }
+          }}
+          ArrowDownIconComponent={() => (
+            <CaretDown />
+          )}
+          ArrowUpIconComponent={() => {
+            <CaretUp />
+          }}
+          modalProps={{
+            animationType: 'slide',
+            presentationStyle: 'pageSheet'
+          }}
+          modalContentContainerStyle={{
+            backgroundColor: "#fff",
+            borderWidth: 0,
+            marginHorizontal: scaleSM(20),
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            flexGrow: 1,
+            overflow: "hidden"
+          }}
+          searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
+          searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
+          arrowIconContainerStyle={{
+            marginRight: 20,
+          }}
+          style={[{
+            backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+            borderColor: error && colors.error,
+            // shadowColor: theme === 'dark' ? colors.primary : undefined,
+            borderWidth: error ? 1 : 0,
+            // marginBottom: 10
+          }, boxShadow, borderRadius]}
+        />
+        {error && <Text style={[{ color: colors.error }]}>{error}</Text>}
 
-    </View>
-  );
+      </View>
+    );
 };
 
 const styles = StyleSheet.create({

@@ -18,6 +18,7 @@ import { IMEIScanner } from "./IMEIScanner";
 import Button from './Button';
 import { getHeight, moderateScale } from "../common/constants";
 import { commonStyle } from "../theme";
+import { Control, Controller } from "react-hook-form";
 
 interface BarcodeInputProps {
   value: string;
@@ -31,6 +32,8 @@ interface BarcodeInputProps {
   name?: string;
   iconReadonly?: boolean;
   maxLength?: number;
+  control?: Control<any>;
+  rules?: any
 }
 
 interface RootDrawerParamList {
@@ -48,7 +51,9 @@ function BarcodeInput({
   placeholder,
   name,
   iconReadonly,
-  maxLength = 15
+  maxLength = 15,
+  rules,
+  control,
 }: BarcodeInputProps) {
   const { colors, theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
@@ -121,108 +126,237 @@ function BarcodeInput({
 
   const isDisabled = readonly || iconReadonly;
 
-  return (
-    <View style={{ ...style, height: getHeight(51) }}>
-      {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
-      <View style={[styles.barcodeContainer]}>
-        <TextInput
-          value={value}
-          readOnly={readonly}
-          onChangeText={handleTextChange}
-          placeholder={placeholder || `Enter ${maxLength}-digit IMEI`}
-          placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
-          secureTextEntry={secureTextEntry}
-          keyboardType="number-pad"
-          style={[
-            styles.textInput,
-            {
-              backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
-              color: colors.text,
-              borderColor: error && colors.error,
-              borderWidth: error ? 1 : 0
-              // shadowColor: theme === 'dark' ? colors.primary : undefined,
-            }, boxShadow, borderRadius
-          ]}
-        />
+  return (control && name) ?
+    (
+      <Controller
+        control={control}
+        name={name}
+        rules={rules}
+        render={({ field: { value, onChange } }) => {
+          const handleTextChange = (text: string) => {
+            const numericText = text.replace(/[^0-9]/g, '');
+            if (numericText.length <= maxLength) {
+              onChange(numericText);
+            }
+          };
 
-        <TouchableOpacity
-          style={
-            styles.scanButton
-          }
-          activeOpacity={isDisabled ? 1 : 0.7}
-          onPress={openScanner}
-          disabled={isDisabled}
-        >
-          <Icon
-            name="barcode"
-            size={moderateScale(36)}
-            color={colors.border}
-          />
-        </TouchableOpacity>
-      </View>
+          const handleScanSuccess = (scannedImei: string) => {
+            onChange(scannedImei);
+            closeScanner();
+          };
 
-      {error && (
-        <Text style={[styles.errorText, { color: colors.error }]}>
-          {error}
-        </Text>
-      )}
-
-      {/* Enhanced Modal with Scanner */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        onRequestClose={closeScanner}
-        transparent={false}
-        statusBarTranslucent
-      >
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <View
-          style={styles.modalContainer}>
-          <SafeAreaView style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={closeScanner}
-                activeOpacity={0.7}
-              >
-                <Icon name="close" size={28} color="#FFF" />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>IMEI Scanner</Text>
-              <View style={styles.placeholder} />
-            </View>
-
-            {/* Scanner */}
-            <View style={styles.scannerContainer}>
-              {isScanning && (
-                <IMEIScanner
-                  ref={scannerRef}
-                  onSuccessScanned={handleScanSuccess}
-                />
-              )}
-            </View>
-
-            {/* Footer with instructions */}
-            <View style={styles.modalFooter}>
-              <View style={styles.instructionBox}>
-                <Icon name="information" size={20} color="#FFF" />
-                <Text style={styles.instructionText}>
-                  Point your camera at the IMEI barcode and hold steady
+          return (
+            <View style={{ ...style, height: getHeight(51) }}>
+              {label && (
+                <Text style={[styles.label, { color: colors.text }]}>
+                  {label}
                 </Text>
+              )}
+
+              <View style={styles.barcodeContainer}>
+                <TextInput
+                  value={value}
+                  readOnly={readonly}
+                  onChangeText={handleTextChange}
+                  placeholder={placeholder || `Enter ${maxLength}-digit IMEI`}
+                  placeholderTextColor={
+                    theme === 'dark' ? '#BDBDBD' : colors.textDarker
+                  }
+                  secureTextEntry={secureTextEntry}
+                  keyboardType="number-pad"
+                  style={[
+                    styles.textInput,
+                    {
+                      backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                      color: colors.text,
+                      borderColor: error && colors.error,
+                      borderWidth: error ? 1 : 0,
+                    },
+                    boxShadow,
+                    borderRadius,
+                  ]}
+                />
+
+                <TouchableOpacity
+                  style={styles.scanButton}
+                  activeOpacity={isDisabled ? 1 : 0.7}
+                  onPress={openScanner}
+                  disabled={isDisabled}
+                >
+                  <Icon
+                    name="barcode"
+                    size={moderateScale(36)}
+                    color={colors.border}
+                  />
+                </TouchableOpacity>
               </View>
 
-              <Button
-                title='Cancel'
-                variant='darker'
-                onPress={closeScanner}
-                style={styles.cancelButton}
-              />
+              {error && (
+                <Text style={[styles.errorText, { color: colors.error }]}>
+                  {error}
+                </Text>
+              )}
+
+              {/* Modal Scanner */}
+              <Modal
+                visible={modalVisible}
+                animationType="slide"
+                onRequestClose={closeScanner}
+                transparent={false}
+                statusBarTranslucent
+              >
+                <StatusBar barStyle="light-content" backgroundColor="#000" />
+                <View style={styles.modalContainer}>
+                  <SafeAreaView style={styles.modalContent}>
+                    {/* Header */}
+                    <View style={styles.modalHeader}>
+                      <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={closeScanner}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name="close" size={28} color="#FFF" />
+                      </TouchableOpacity>
+                      <Text style={styles.modalTitle}>IMEI Scanner</Text>
+                      <View style={styles.placeholder} />
+                    </View>
+
+                    {/* Scanner */}
+                    <View style={styles.scannerContainer}>
+                      {isScanning && (
+                        <IMEIScanner
+                          ref={scannerRef}
+                          onSuccessScanned={handleScanSuccess}
+                        />
+                      )}
+                    </View>
+
+                    {/* Footer */}
+                    <View style={styles.modalFooter}>
+                      <View style={styles.instructionBox}>
+                        <Icon name="information" size={20} color="#FFF" />
+                        <Text style={styles.instructionText}>
+                          Point your camera at the IMEI barcode and hold steady
+                        </Text>
+                      </View>
+
+                      <Button
+                        title="Cancel"
+                        variant="darker"
+                        onPress={closeScanner}
+                        style={styles.cancelButton}
+                      />
+                    </View>
+                  </SafeAreaView>
+                </View>
+              </Modal>
             </View>
-          </SafeAreaView>
+          );
+        }}
+      />
+    ) :
+    (
+      <View style={{ ...style, height: getHeight(51) }}>
+        {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
+        <View style={[styles.barcodeContainer]}>
+          <TextInput
+            value={value}
+            readOnly={readonly}
+            onChangeText={handleTextChange}
+            placeholder={placeholder || `Enter ${maxLength}-digit IMEI`}
+            placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
+            secureTextEntry={secureTextEntry}
+            keyboardType="number-pad"
+            style={[
+              styles.textInput,
+              {
+                backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                color: colors.text,
+                borderColor: error && colors.error,
+                borderWidth: error ? 1 : 0
+                // shadowColor: theme === 'dark' ? colors.primary : undefined,
+              }, boxShadow, borderRadius
+            ]}
+          />
+
+          <TouchableOpacity
+            style={
+              styles.scanButton
+            }
+            activeOpacity={isDisabled ? 1 : 0.7}
+            onPress={openScanner}
+            disabled={isDisabled}
+          >
+            <Icon
+              name="barcode"
+              size={moderateScale(36)}
+              color={colors.border}
+            />
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </View>
-  );
+
+        {error && (
+          <Text style={[styles.errorText, { color: colors.error }]}>
+            {error}
+          </Text>
+        )}
+
+        {/* Enhanced Modal with Scanner */}
+        <Modal
+          visible={modalVisible}
+          animationType="slide"
+          onRequestClose={closeScanner}
+          transparent={false}
+          statusBarTranslucent
+        >
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <View
+            style={styles.modalContainer}>
+            <SafeAreaView style={styles.modalContent}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <TouchableOpacity
+                  style={styles.closeButton}
+                  onPress={closeScanner}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="close" size={28} color="#FFF" />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>IMEI Scanner</Text>
+                <View style={styles.placeholder} />
+              </View>
+
+              {/* Scanner */}
+              <View style={styles.scannerContainer}>
+                {isScanning && (
+                  <IMEIScanner
+                    ref={scannerRef}
+                    onSuccessScanned={handleScanSuccess}
+                  />
+                )}
+              </View>
+
+              {/* Footer with instructions */}
+              <View style={styles.modalFooter}>
+                <View style={styles.instructionBox}>
+                  <Icon name="information" size={20} color="#FFF" />
+                  <Text style={styles.instructionText}>
+                    Point your camera at the IMEI barcode and hold steady
+                  </Text>
+                </View>
+
+                <Button
+                  title='Cancel'
+                  variant='darker'
+                  onPress={closeScanner}
+                  style={styles.cancelButton}
+                />
+              </View>
+            </SafeAreaView>
+          </View>
+        </Modal>
+      </View>
+    );
 }
 
 const styles = StyleSheet.create({

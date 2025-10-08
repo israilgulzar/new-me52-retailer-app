@@ -91,16 +91,26 @@ const Forms = ({
 		const dv: Record<string, any> = {};
 		formFields.forEach(f => {
 			if (f.component && Array.isArray(f.component)) {
-				// nested components: include their keys as well
+				// handle nested fields
 				f.component.forEach((c: any) => {
-					dv[c.key] = c.value;
+					if (['phoneNumber', 'alternateNumber']?.includes(c.key)) {
+						// extract just the phone number string
+						dv[c.key] = c.value?.phoneNumber || c.value?.alternateNumber || '';
+					} else {
+						dv[c.key] = c.value;
+					}
 				});
 			} else {
-				dv[f.key] = f.value;
+				if (['phoneNumber', 'alternateNumber']?.includes(f.key)) {
+					dv[f.key] = f.value?.phoneNumber || f.value?.alternateNumber || '';
+				} else {
+					dv[f.key] = f.value;
+				}
 			}
 		});
 		return dv;
 	}, [formFields]);
+
 
 	// React Hook Form instance
 	const {
@@ -301,6 +311,9 @@ const Forms = ({
 			}
 		}
 	}, [formFields, setErrors]);
+
+	console.log("---->>>>");
+
 
 	// We'll reuse your existing onChangeText logic to update `formState` array.
 	// Slightly adjusted to be stable inside this component (kept original code intact).
@@ -552,75 +565,60 @@ const Forms = ({
 
 				case 'countrySelection':
 					return (
-						<Controller
+						<CountryPicker
+							key={field.key}
+							onChangeText={(e: any, key?: any) => {
+								updateField(field, e, key);
+							}}
 							control={control}
 							name={field.key}
 							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<CountryPicker
-									key={field.key}
-									onChangeText={(e: any, key?: any) => {
-										onChange(e);
-										updateField(field, e, key);
-									}}
-									value={value}
-									error={errors[field.key]}
-									readonly={field.readonly}
-									style={styles.container}
-								/>
-							)}
+							value={field.value}
+							error={errors[field.key]}
+							readonly={field.readonly}
+							style={styles.container}
 						/>
 					);
 
 				case 'stateSelection':
 					return (
-						<Controller
+						<StatePicker
+							key={field.key}
+							onChangeText={(e: any, key?: any) => {
+								updateField(field, e, key);
+								// Also keep countryStateCity updated
+								setCountryStateCity(prev => ({ ...prev, state: e }));
+							}}
+							value={field.value}
 							control={control}
 							name={field.key}
 							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<StatePicker
-									key={field.key}
-									onChangeText={(e: any, key?: any) => {
-										onChange(e);
-										updateField(field, e, key);
-										// Also keep countryStateCity updated
-										setCountryStateCity(prev => ({ ...prev, state: e }));
-									}}
-									value={value}
-									error={errors[field.key]}
-									readonly={field.readonly}
-									parentValue={formFields.find(ff => ff.key === 'country')?.value}
-									style={styles.container}
-								/>
-							)}
+							error={errors[field.key]}
+							readonly={field.readonly}
+							parentValue={formFields.find(ff => ff.key === 'country')?.value}
+							style={styles.container}
 						/>
 					);
 
 				case 'citySelection':
 					return (
-						<Controller
+						<CityPicker
 							control={control}
 							name={field.key}
 							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<CityPicker
-									key={field.key}
-									onChangeText={(e: any, key?: any) => {
-										onChange(e);
-										updateField(field, e, key);
-										setCountryStateCity(prev => ({ ...prev, city: e }));
-									}}
-									value={value}
-									error={errors[field.key]}
-									readonly={field.readonly}
-									parentValue={{
-										country: formFields.find(ff => ff.key === 'country')?.value,
-										state: formFields.find(ff => ff.key === 'state')?.value,
-									}}
-									style={styles.container}
-								/>
-							)}
+							key={field.key}
+							onChangeText={(e: any, key?: any) => {
+								updateField(field, e, key);
+								setCountryStateCity(prev => ({ ...prev, city: e }));
+							}}
+							value={field.value}
+							error={errors[field.key]}
+							readonly={field.readonly}
+							parentValue={{
+								country: formFields.find(ff => ff.key === 'country')?.value,
+								state: formFields.find(ff => ff.key === 'state')?.value,
+							}}
+							style={styles.container}
 						/>
 					);
 
@@ -632,183 +630,116 @@ const Forms = ({
 						field.value,
 					);
 					return (
-						<Controller
+						<Dropdown
 							control={control}
 							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<Dropdown
-									options={field.options ? field.options : []}
-									multiple={field.multiple}
-									value={value}
-									key={`${field.key}-${value}`}
-									style={styles.container}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									error={errors[field.key]}
-									listModal={field.listModal}
-									search={field.search}
-									apiDetails={field.apiDetails}
-									placeholder={field.label}
-									readonly={field.readonly}
-								/>
-							)}
+							// defaultValue={field.value}
+							options={field.options ? field.options : []}
+							multiple={field.multiple}
+							value={field.value}
+							key={`${field.key}-${field.value}`}
+							style={styles.container}
+							onChangeText={(e: any) => {
+								updateField(field, e);
+							}}
+							error={errors[field.key]}
+							listModal={field.listModal}
+							search={field.search}
+							apiDetails={field.apiDetails}
+							placeholder={field.label}
+							readonly={field.readonly}
 						/>
 					);
 
 				case 'date':
 					return (
-						<Controller
-							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<Datepicker
-									value={value}
-									error={errors[field.key]}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									key={field.key}
-									style={styles.container}
-									readonly={field.readonly}
-									maxDate={field.maxDate}
-									placeholder={field.placeholder}
-									minDate={field.minDate}
-								/>
-							)}
+						<Datepicker
+							value={field.value}
+							error={errors[field.key]}
+							onChangeText={(e: any) => {
+								updateField(field, e);
+							}}
+							key={field.key}
+							style={styles.container}
+							readonly={field.readonly}
+							maxDate={field.maxDate}
+							placeholder={field.placeholder}
+							minDate={field.minDate}
 						/>
 					);
 
 				case 'file':
 					return (
-						<Controller
-							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<Uploader
-									value={value}
-									key={field.key}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									readonly={field.readonly}
-								/>
-							)}
+						<Uploader
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
 						/>
 					);
 
 				case 'barcode':
 					return (
-						<Controller
+						<BarcodeInput
+							key={field.key}
 							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<BarcodeInput
-									value={value}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									key={field.key}
-									placeholder={field.label}
-									style={styles.container}
-									name={field.name}
-									readonly={field.readonly}
-									error={errors[field.key]}
-									iconReadonly={field.iconReadonly}
-								/>
-							)}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							placeholder={field.label}
+							style={styles.container}
+							name={field.name}
+							readonly={field.readonly}
+							error={errors[field.key]}
+							iconReadonly={field.iconReadonly}
 						/>
 					);
 
 				case 'checkbox':
 					return (
-						<Controller
-							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<Checkbox
-									key={field.key}
-									value={value}
-									label={field.label}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									readonly={field.readonly}
-									terms={field.terms}
-									border={field.border}
-									error={errors[field.key]}
-								/>
-							)}
+						<Checkbox
+							key={field.key}
+							value={field.value}
+							label={field.label}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+							terms={field.terms}
+							border={field.border}
+							error={errors[field.key]}
 						/>
 					);
 
 				case 'signaturePad':
-					console.log('ME52RETAILERTESTING',
-						'Rendering signaturePad for: ',
-						field.key,
-						' with value: ',
-						field.value ? 'has value' : 'no value',
-					);
+					console.log('ME52RETAILERTESTING', 'Rendering signaturePad for:', field.key);
 					return (
-						<Controller
-							control={control}
+						<SignPad
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+							label={field.label}
+							style={styles.container}
+							error={errors[field.key]}
 							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<SignPad
-									value={value}
-									key={field.key}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									readonly={field.readonly}
-									label={field.label}
-									style={styles.container}
-									error={errors[field.key]}
-									name={field.key}
-								/>
-							)}
 						/>
 					);
 
 				case 'orderInput':
 					return (
-						<Controller
-							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<OrderInput
-									readonly={field.readonly}
-									label={field.label}
-									price={field.price}
-									discount={field.discount}
-									value={value}
-									key={field.key}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									features={field.features}
-									index={index}
-								/>
-							)}
+						<OrderInput
+							key={field.key}
+							readonly={field.readonly}
+							label={field.label}
+							price={field.price}
+							discount={field.discount}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							features={field.features}
+							index={index}
 						/>
 					);
 
 				case 'uploadPicker':
-					// handle multiple frames separately – these use UploadPicker directly and updateField
+					// handle multiple frames separately
 					if (field.multiple && field.no_of_frames) {
 						return (
 							<View style={commonStyle.pb10}>
@@ -831,29 +762,23 @@ const Forms = ({
 								>
 									{field.value &&
 										field.value.length < 10 &&
-										Array.from({ length: field.no_of_frames }).map(
-											(no_of_frame: any, i) => {
-												return (
-													<View style={commonStyle.mv10} key={i}>
-														<UploadPicker
-															width={field.width}
-															height={field.height}
-															imageOrVideo={field.imageOrVideo}
-															value={null}
-															onChangeText={(e: any) => {
-																updateField(field, e);
-															}}
-															readonly={field.readonly}
-															error={errors[field.key]}
-															caption={field.caption}
-															maxSize={field.maxSize}
-														/>
-													</View>
-												);
-											},
-										)}
+										Array.from({ length: field.no_of_frames }).map((_, i) => (
+											<View style={commonStyle.mv10} key={i}>
+												<UploadPicker
+													width={field.width}
+													height={field.height}
+													imageOrVideo={field.imageOrVideo}
+													value={null}
+													onChangeText={(e: any) => updateField(field, e)}
+													readonly={field.readonly}
+													error={errors[field.key]}
+													caption={field.caption}
+													maxSize={field.maxSize}
+												/>
+											</View>
+										))}
 									{field.value &&
-										field.value.length != 0 &&
+										field.value.length !== 0 &&
 										field.value.map((val: any, i: number) => (
 											<View style={commonStyle.mv10} key={i}>
 												<UploadPicker
@@ -861,9 +786,7 @@ const Forms = ({
 													height={field.height}
 													imageOrVideo={field.imageOrVideo}
 													value={val}
-													onChangeText={(e: any) =>
-														updateField(field, e, null, '', i)
-													}
+													onChangeText={(e: any) => updateField(field, e, null, '', i)}
 													readonly={field.readonly}
 													error={errors[field.key]}
 													caption={field.caption}
@@ -876,48 +799,30 @@ const Forms = ({
 						);
 					} else {
 						return (
-							<Controller
-								control={control}
-								name={field.key}
-								defaultValue={field.value}
-								render={({ field: { onChange, value } }) => (
-									<UploadPicker
-										width={field.width}
-										label={field.label}
-										height={field.height}
-										imageOrVideo={field.imageOrVideo}
-										value={value}
-										onChangeText={(e: any) => {
-											onChange(e);
-											updateField(field, e);
-										}}
-										readonly={field.readonly}
-										error={errors[field.key]}
-										style={styles.container}
-										caption={field.caption}
-										maxSize={field.maxSize}
-									/>
-								)}
+							<UploadPicker
+								key={field.key}
+								width={field.width}
+								label={field.label}
+								height={field.height}
+								imageOrVideo={field.imageOrVideo}
+								value={field.value}
+								onChangeText={(e: any) => updateField(field, e)}
+								readonly={field.readonly}
+								error={errors[field.key]}
+								style={styles.container}
+								caption={field.caption}
+								maxSize={field.maxSize}
 							/>
 						);
 					}
 
 				case 'time':
 					return (
-						<Controller
-							control={control}
-							name={field.key}
-							defaultValue={field.value}
-							render={({ field: { onChange, value } }) => (
-								<TimePicker
-									value={value}
-									onChangeText={(e: any) => {
-										onChange(e);
-										updateField(field, e);
-									}}
-									label={field.label}
-								/>
-							)}
+						<TimePicker
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							label={field.label}
 						/>
 					);
 
@@ -1145,21 +1050,32 @@ const Forms = ({
 		return renderByType(formField);
 	};
 
+	const RenderDynamicFields = () => {
+		const elements = [];
+		for (let i = 0; i < formFields?.length; i++) {
+			const field = formFields[i];
+			if (!field) break;
+			elements.push(
+				<View key={field.key || i}>
+					{RenderForm({ item: field, index: i })}
+				</View>
+			);
+		}
+		return elements;
+	};
+
 	return (
 		<View style={{ flex: 1 }}>
 			<KeyboardAvoidingView>
-				<FlatList
-					ListFooterComponentStyle={{ backgroundColor: 'blue' }}
-					data={formFields}
-					renderItem={RenderForm}
-					keyExtractor={item => item.key}
-					extraData={formState}
-					ListHeaderComponentStyle={{ zIndex: 1000 }}
-					contentContainerStyle={contentContainerStyle}
-				/>
+				<ScrollView contentContainerStyle={contentContainerStyle}>
+					<View>
+						<RenderDynamicFields />
+					</View>
+				</ScrollView>
 			</KeyboardAvoidingView>
 		</View>
 	);
+
 };
 
 export default React.memo(Forms);

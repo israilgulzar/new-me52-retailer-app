@@ -7,17 +7,24 @@ import { borderRadius, boxShadow } from '../styles/styles';
 import CaretDown from "../assets/caret-down.svg"
 import CaretUp from "../assets/caret-up.svg"
 import { scaleSM } from '../utility/helpers';
+import { Controller } from 'react-hook-form';
 interface StatePickerProps {
+	control?: any;
 	value: string
 	error?: string
 	name?: string
 	style?: ViewStyle
 	readonly?: boolean
 	parentValue: string
+	rules?: any;
+	defaultValue?: any;
 	onChangeText: (text: any, key: string) => void
 }
 
-const StatePicker = ({ error, onChangeText, value, readonly, parentValue }: StatePickerProps) => {
+const StatePicker = ({ error, onChangeText, value, readonly, parentValue, control,
+	name,
+	rules,
+	defaultValue, }: StatePickerProps) => {
 
 	const [states, setStates] = useState([{ label: 'Gujarat', value: 'GJ' }] as any);
 	const [selectedState, setSelectedState] = useState<any>('GJ');
@@ -57,63 +64,136 @@ const StatePicker = ({ error, onChangeText, value, readonly, parentValue }: Stat
 		// onChangeText(allStates && allStates.length !== 0 ? null : 'no_state', 'state');
 	}
 
-	return (
-		<View style={[styles.container]}>
-			<DropDownPicker
-				open={openState}
-				setOpen={setOpenState}
-				value={selectedState}
-				setValue={setSelectedState}
-				items={states}
-				placeholder="Select state"
-				placeholderStyle={{ color: colors.textDarker }}
-				zIndex={2000}
-				zIndexInverse={2000}
-				listMode='MODAL'
-				searchable
-				disabled={readonly}
-				searchPlaceholder='Search State'
-				onOpen={() => loadState(parentValue as string)}
-				modalProps={{
-					animationType: 'slide',
-					presentationStyle: 'pageSheet'
-				}}
-				modalContentContainerStyle={{
-					backgroundColor: "#fff",
-					borderWidth: 0,
-					marginHorizontal: scaleSM(20),
-					borderTopLeftRadius: 20,
-					borderTopRightRadius: 20,
-					flexGrow: 1,
-					overflow: "hidden"
-				}}
-				searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
-				searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
-				onChangeValue={(e) => {
-					if (e != value) {
-						onChangeText(e, 'state')
-					}
-				}}
-				ArrowDownIconComponent={() => (
-					<CaretDown />
-				)}
-				ArrowUpIconComponent={() => (
-					<CaretUp />
-				)}
-				arrowIconContainerStyle={{
-					marginRight: 20,
-				}}
-				style={[{
-					backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
-					borderColor: error && colors.error,
-					// shadowColor: theme === 'dark' ? colors.primary : undefined,
-					borderWidth: error ? 1 : 0,
-					// marginBottom: 10
-				}, boxShadow, borderRadius]}
-			/>
-			{error && <Text style={[{ color: colors.error }]}>{error}</Text>}
-		</View>
-	);
+	return (control && name) ?
+		(<Controller
+			control={control}
+			name={name}
+			defaultValue={defaultValue || ''}
+			rules={rules}
+			render={({ field: { onChange, value } }) => (
+				<View style={[styles.container]}>
+					<DropDownPicker
+						open={openState}
+						setOpen={setOpenState}
+						value={value}
+						setValue={setSelectedState}
+						items={states}
+						placeholder="Select state"
+						placeholderStyle={{ color: colors.textDarker }}
+						zIndex={2000}
+						zIndexInverse={2000}
+						listMode="MODAL"
+						searchable
+						disabled={readonly}
+						searchPlaceholder="Search State"
+						onOpen={() => loadState(parentValue)}
+						onChangeValue={(val) => {
+							if (val !== value) {
+								onChange(val);
+							}
+						}}
+						ArrowDownIconComponent={() => <CaretDown />}
+						ArrowUpIconComponent={() => <CaretUp />}
+						modalProps={{
+							animationType: 'slide',
+							presentationStyle: 'pageSheet',
+						}}
+						modalContentContainerStyle={{
+							backgroundColor: '#fff',
+							borderWidth: 0,
+							marginHorizontal: scaleSM(20),
+							borderTopLeftRadius: 20,
+							borderTopRightRadius: 20,
+							flexGrow: 1,
+							overflow: 'hidden',
+						}}
+						searchContainerStyle={{
+							borderBottomWidth: 0,
+							marginTop: scaleSM(15),
+							padding: 0,
+						}}
+						searchTextInputStyle={[
+							boxShadow,
+							{
+								borderWidth: 0,
+								backgroundColor: '#fff',
+								paddingHorizontal: scaleSM(15),
+								paddingVertical: scaleSM(5),
+								marginHorizontal: scaleSM(5),
+							},
+						]}
+						arrowIconContainerStyle={{ marginRight: 20 }}
+						style={[
+							{
+								backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+								borderColor: error ? colors.error : '#ccc',
+								borderWidth: error ? 1 : 0,
+							},
+							boxShadow,
+							borderRadius,
+						]}
+					/>
+					{error && <Text style={{ color: colors.error, marginTop: 4 }}>{error}</Text>}
+				</View>
+			)}
+		/>
+		) : (
+			<View style={[styles.container]}>
+				<DropDownPicker
+					open={openState}
+					setOpen={setOpenState}
+					value={selectedState}
+					setValue={setSelectedState}
+					items={states}
+					placeholder="Select state"
+					placeholderStyle={{ color: colors.textDarker }}
+					zIndex={2000}
+					zIndexInverse={2000}
+					listMode='MODAL'
+					searchable
+					disabled={readonly}
+					searchPlaceholder='Search State'
+					onOpen={() => loadState(parentValue as string)}
+					modalProps={{
+						animationType: 'slide',
+						presentationStyle: 'pageSheet'
+					}}
+					modalContentContainerStyle={{
+						backgroundColor: "#fff",
+						borderWidth: 0,
+						marginHorizontal: scaleSM(20),
+						borderTopLeftRadius: 20,
+						borderTopRightRadius: 20,
+						flexGrow: 1,
+						overflow: "hidden"
+					}}
+					searchContainerStyle={[{ borderBottomWidth: 0, marginTop: scaleSM(15), padding: 0 }]}
+					searchTextInputStyle={[boxShadow, { borderWidth: 0, backgroundColor: "#fff", paddingHorizontal: scaleSM(15), paddingVertical: scaleSM(5), marginHorizontal: scaleSM(5) }]}
+					onChangeValue={(e) => {
+						if (e != value) {
+							onChangeText(e, 'state')
+						}
+					}}
+					ArrowDownIconComponent={() => (
+						<CaretDown />
+					)}
+					ArrowUpIconComponent={() => (
+						<CaretUp />
+					)}
+					arrowIconContainerStyle={{
+						marginRight: 20,
+					}}
+					style={[{
+						backgroundColor: theme == 'dark' ? '#232323' : '#FFF',
+						borderColor: error && colors.error,
+						// shadowColor: theme === 'dark' ? colors.primary : undefined,
+						borderWidth: error ? 1 : 0,
+						// marginBottom: 10
+					}, boxShadow, borderRadius]}
+				/>
+				{error && <Text style={[{ color: colors.error }]}>{error}</Text>}
+			</View>
+		);
 };
 
 const styles = StyleSheet.create({

@@ -6,6 +6,7 @@ import React, { useState } from "react"
 import { useTheme } from "../theme/ThemeProvider"
 import CrossBox from "../assets/cross2.svg"
 import CheckWithoutBorder from "../assets/check-svgrepo-com 1.svg"
+import { Control, Controller } from "react-hook-form"
 
 interface OrderInputI {
     label?: string,
@@ -16,9 +17,12 @@ interface OrderInputI {
     onChangeText: (value: string) => void
     features?: Array<Record<string, any>>,
     index?: number
+    name?: string;
+    control?: Control<any>;
+    rules?: any
 }
 
-const OrderInput = ({ label, value, onChangeText, features, index, discount, price, readonly }: OrderInputI) => {
+const OrderInput = ({ label, value, onChangeText, features, index, discount, price, readonly, name, rules, control }: OrderInputI) => {
 
     const [showFeature, setShowFeature] = useState(false)
     const { colors } = useTheme()
@@ -26,56 +30,120 @@ const OrderInput = ({ label, value, onChangeText, features, index, discount, pri
 
     return (
         <Card style={styles.card}>
-            <View>
-                <TouchableOpacity onPress={() => setShowFeature(!showFeature)} activeOpacity={1} style={[styles.header]}>
-                    <Text style={[{ color: colors.text }, styles.label]}>
-                        {index != undefined && index + 1}. {label}
-                    </Text>
-                    <Image source={showFeature ? require('../assets/caret-up.png') : require('../assets/caret-down.png')} style={[styles.headerIcon]} />
-                </TouchableOpacity>
-                <Input
-                    value={value}
-                    onChangeText={(e) => onChangeText(e)}
-                    placeholder={`Enter ${label}`}
-                    keyboardType="number"
-                    readonly={readonly}
-                />
-                {showFeature && <View style={[styles.featureContainer]}>
-                    <View style={[styles.horizontalLine]}></View>
-                    {
-                        price > 0 &&
-                        <View style={[styles.priceBox]}>
-                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Price:</Text>
-                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Rs. {price}/-</Text>
-                        </View>
-                    }
-                    {/* <View style={[styles.priceBox]}>
-                        <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Discount:</Text>
-                        <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>{discount}%</Text>
-                    </View> */}
-                    <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Feature</Text>
-                    <View style={{ borderWidth: 0.5, borderRadius: 10, padding: 10, borderColor: "#E1E1E1" }}>
-                        {
-                            features?.map((feature) => {
-                                return (
-                                    <View style={[styles.featureHeader]} key={feature.label}>
-                                        {/* <Icon name={feature.active ? "checkbox-marked" : "close"} size={30} color={feature.active ? colors.primary : colors.text} />  */}
-                                        {feature.active ? <View style={{ borderWidth: 0.8, borderRadius: 5, borderColor: "#F39314", height: 20, backgroundColor: "#F3931454" }}>
-                                            <CheckWithoutBorder />
-                                        </View> :
-                                            <CrossBox />}
-                                        <Text key={feature.label} style={[{ color: feature.active ? "#F39314" : "#8F999E" }, styles.featureText]}>
-                                            {feature.label}
+            {
+                (control && name) ?
+                    (
+                        <Controller
+                            control={control}
+                            name={name}
+                            render={({ field: { value, onChange } }) => (
+                                <View>
+                                    <TouchableOpacity onPress={() => setShowFeature(!showFeature)} activeOpacity={1} style={[styles.header]}>
+                                        <Text style={[{ color: colors.text }, styles.label]}>
+                                            {index != undefined && index + 1}. {label}
                                         </Text>
+                                        <Image source={showFeature ? require('../assets/caret-up.png') : require('../assets/caret-down.png')} style={[styles.headerIcon]} />
+                                    </TouchableOpacity>
+                                    <Input
+                                        value={value}
+                                        onChangeText={(e) => onChangeText(e)}
+                                        placeholder={`Enter ${label}`}
+                                        keyboardType="number"
+                                        readonly={readonly}
+                                    />
+                                    {showFeature && <View style={[styles.featureContainer]}>
+                                        <View style={[styles.horizontalLine]}></View>
+                                        {
+                                            price > 0 &&
+                                            <View style={[styles.priceBox]}>
+                                                <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Price:</Text>
+                                                <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Rs. {price}/-</Text>
+                                            </View>
+                                        }
+                                        {/* <View style={[styles.priceBox]}>
+                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Discount:</Text>
+                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>{discount}%</Text>
+                        </View> */}
+                                        <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Feature</Text>
+                                        <View style={{ borderWidth: 0.5, borderRadius: 10, padding: 10, borderColor: "#E1E1E1" }}>
+                                            {
+                                                features?.map((feature) => {
+                                                    return (
+                                                        <View style={[styles.featureHeader]} key={feature.label}>
+                                                            {/* <Icon name={feature.active ? "checkbox-marked" : "close"} size={30} color={feature.active ? colors.primary : colors.text} />  */}
+                                                            {feature.active ? <View style={{ borderWidth: 0.8, borderRadius: 5, borderColor: "#F39314", height: 20, backgroundColor: "#F3931454" }}>
+                                                                <CheckWithoutBorder />
+                                                            </View> :
+                                                                <CrossBox />}
+                                                            <Text key={feature.label} style={[{ color: feature.active ? "#F39314" : "#8F999E" }, styles.featureText]}>
+                                                                {feature.label}
+                                                            </Text>
 
+                                                        </View>
+                                                    )
+                                                })
+                                            }
+                                        </View>
+                                    </View>}
+                                </View>
+                            )}
+                        />
+                    ) : (
+                        <View>
+                            <TouchableOpacity onPress={() => setShowFeature(!showFeature)} activeOpacity={1} style={[styles.header]}>
+                                <Text style={[{ color: colors.text }, styles.label]}>
+                                    {index != undefined && index + 1}. {label}
+                                </Text>
+                                <Image source={showFeature ? require('../assets/caret-up.png') : require('../assets/caret-down.png')} style={[styles.headerIcon]} />
+                            </TouchableOpacity >
+                            <Input
+                                value={value}
+                                onChangeText={(e) => onChangeText(e)}
+                                placeholder={`Enter ${label}`}
+                                keyboardType="number"
+                                readonly={readonly}
+                            />
+                            {
+                                showFeature && <View style={[styles.featureContainer]}>
+                                    <View style={[styles.horizontalLine]}></View>
+                                    {
+                                        price > 0 &&
+                                        <View style={[styles.priceBox]}>
+                                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Price:</Text>
+                                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Rs. {price}/-</Text>
+                                        </View>
+                                    }
+                                    {/* <View style={[styles.priceBox]}>
+                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Discount:</Text>
+                            <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>{discount}%</Text>
+                        </View> */}
+                                    <Text style={{ color: colors.text, marginBottom: 10, fontSize: 14, marginTop: 10 }}>Feature</Text>
+                                    <View style={{ borderWidth: 0.5, borderRadius: 10, padding: 10, borderColor: "#E1E1E1" }}>
+                                        {
+                                            features?.map((feature) => {
+                                                return (
+                                                    <View style={[styles.featureHeader]} key={feature.label}>
+                                                        {/* <Icon name={feature.active ? "checkbox-marked" : "close"} size={30} color={feature.active ? colors.primary : colors.text} />  */}
+                                                        {feature.active ? <View style={{ borderWidth: 0.8, borderRadius: 5, borderColor: "#F39314", height: 20, backgroundColor: "#F3931454" }}>
+                                                            <CheckWithoutBorder />
+                                                        </View> :
+                                                            <CrossBox />}
+                                                        <Text key={feature.label} style={[{ color: feature.active ? "#F39314" : "#8F999E" }, styles.featureText]}>
+                                                            {feature.label}
+                                                        </Text>
+
+                                                    </View>
+                                                )
+                                            })
+                                        }
                                     </View>
-                                )
-                            })
-                        }
-                    </View>
-                </View>}
-            </View>
-        </Card>
+                                </View>
+                            }
+                        </View >
+                    )
+            }
+
+        </Card >
     )
 }
 
