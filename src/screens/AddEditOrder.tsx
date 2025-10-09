@@ -1,27 +1,19 @@
-import Button from '../components/Button';
-import Forms from '../components/Forms';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, StyleSheet, View, ScrollView } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useAuth } from '../context/AuthContext';
-
-import {
-  addOrder,
-  updateOrder,
-  getKeyTypes,
-  getOrderById,
-} from '../services/orders';
-
+import { useForm, FieldValues } from 'react-hook-form';
+import { RouteProp, useRoute } from '@react-navigation/native';
+import Button from '../components/Button';
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
-import { OrderStackParamList } from '../navigation/AppNavigator';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import { ScrollView } from 'react-native-gesture-handler';
 import CHeader from '../components/CHeader';
 import CRootContainer from '../components/CRootContainer';
-import { commonStyle } from '../theme';
-import { moderateScale } from '../common/constants';
 import Overlay from '../components/Overlat';
+import OrderInput from '../components/OrderInput';
+import { commonStyle } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { addOrder, updateOrder, getKeyTypes, getOrderById } from '../services/orders';
+import { OrderStackParamList } from '../navigation/AppNavigator';
 
 interface OrderForm {
   name: string;
@@ -37,156 +29,128 @@ interface OrderForm {
 }
 
 const AddEditOrder = ({ navigation }: any) => {
-
   const route = useRoute<RouteProp<OrderStackParamList, 'AddOrder'>>();
-
-
   const orderId = route.params?.orderId;
   const viewOnly = route.params?.viewOnly;
   const orderType = route.params?.type;
-
-  const [orderData] = useState({
-    pageno: 1,
-    pagesize: 100,
-  });
-
-  const [keyMap, setKeyMap] = useState<any>({});
-  const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState<
-    'LOADING' | 'SUCCESS' | 'ERROR' | 'SUBMIT'
-  >('SUCCESS');
-  const [orderForm, setOrderForm] = useState<OrderForm[]>([]);
   const { users } = useAuth();
 
-  const fetchOrderDetails = useCallback(
-    async (mounted: boolean, id: string) => {
-      if (id && mounted) {
-        try {
+  const [orderData] = useState({ pageno: 1, pagesize: 100 });
+  const [keyMap, setKeyMap] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, any>>({});
+  const [status, setStatus] = useState<'LOADING' | 'SUCCESS' | 'ERROR' | 'SUBMIT'>('SUCCESS');
+  const [orderForm, setOrderForm] = useState<OrderForm[]>([]);
 
-          setStatus('LOADING');
-          const response = await getOrderById(id, users.token);
-
-          const keys = response?.data?.keys;
-          console.log('ME52RETAILERTESTING', keys);
-          const keymap: any = {};
-          keys?.forEach((key: any) => {
-            if (key?.keytype?._id) keymap[key.keytype._id] = key.asked;
-          });
-          console.log('ME52RETAILERTESTING', keymap);
-          setKeyMap({ ...keymap });
-
-        } catch (error) {
-          console.log('ME52RETAILERTESTING', 'Fetch key types error ', error);
-          console.log('ME52RETAILERTESTING', error);
-          setStatus('ERROR');
-        }
-      }
-    },
-    [],
-  );
-
-  const fetchKeyTypes = useCallback(
-    async (mounted: boolean) => {
-      if (mounted) {
-        try {
-
-          setStatus('LOADING');
-          const response = await getKeyTypes(
-            {
-              pageno: orderData.pageno,
-              pagesize: orderData.pagesize,
-            },
-            users.token,
-          );
-
-          const tempOrderForm: OrderForm[] = [];
-          const orderObj: Record<string, any> = {};
-
-          console.log('ME52RETAILERTESTING', response.data);
-          for (let keyData of response?.data) {
-
-            console.log('ME52RETAILERTESTING', users);
-            console.log('ME52RETAILERTESTING', keyData.user_type[2].price);
-            console.log('ME52RETAILERTESTING', keyMap.hasOwnProperty(keyData._id));
-
-            tempOrderForm.push({
-              name: keyData._id,
-              label: keyData.name,
-              key: keyData._id,
-              type: 'orderInput',
-              price: users.parentType === 'me52' ? (keyData.user_type?.length > 2 ? keyData.user_type[2].price : 0) : 0,
-              discount: users.parentType === 'me52' ? (keyData.user_type?.length > 2 ? keyData.user_type[2].discount : 0) : 0,
-              required: false,
-              ...(viewOnly ? { readonly: viewOnly } : {}),
-              value: keyMap.hasOwnProperty(keyData._id)
-                ? keyMap[keyData._id].toString()
-                : '',
-              features: [
-                {
-                  label: 'Location Tracking',
-                  active: keyData['location_tracking'],
-                },
-                { label: 'SIM Tracking', active: keyData['sim_tracking'] },
-
-                {
-                  label: 'Image Notifications',
-                  active: keyData['image_notification'],
-                },
-                {
-                  label: 'Video Notifications',
-                  active: keyData['video_notification'],
-                },
-                {
-                  label: 'Phone Block',
-                  active: keyData['phone_block'],
-                },
-              ],
-            });
-
-            orderObj[keyData._id] = '';
-
-          }
-          console.log('ME52RETAILERTESTING', tempOrderForm);
-
-          // setOrders(orderObj)
-          setOrderForm(tempOrderForm);
-          setStatus('SUCCESS');
-        } catch (error) {
-          console.log('ME52RETAILERTESTING', 'Fetch key types error ', error);
-          setStatus('ERROR');
-        }
-      }
-    },
-    [keyMap],
-  );
+  // ✅ Use generic type for dynamic keys
+  const { control, handleSubmit, setValue, reset } = useForm<FieldValues>({
+    mode: 'onChange',
+    defaultValues: {}
+  });
 
   useEffect(() => {
-    //Get key types
+    if (orderForm.length > 0) {
+      const defaults: Record<string, any> = {};
+      orderForm.forEach(f => (defaults[f.key] = f.value ?? ''));
+      reset(defaults);
+    }
+  }, [orderForm, reset]);
+
+  const fetchOrderDetails = useCallback(async (mounted: boolean, id: string) => {
+    if (id && mounted) {
+      try {
+        setStatus('LOADING');
+        const response = await getOrderById(id, users.token);
+        const keys = response?.data?.keys;
+        const keymap: any = {};
+        keys?.forEach((key: any) => {
+          if (key?.keytype?._id) keymap[key.keytype._id] = key.asked;
+        });
+        setKeyMap({ ...keymap });
+      } catch {
+        setStatus('ERROR');
+      }
+    }
+  }, [users.token]);
+
+  const fetchKeyTypes = useCallback(async (mounted: boolean, keyMapData: any) => {
+    if (mounted) {
+      try {
+        setStatus('LOADING');
+        const response = await getKeyTypes(orderData, users.token);
+        const tempOrderForm: OrderForm[] = [];
+
+        for (let keyData of response?.data) {
+          tempOrderForm.push({
+            name: keyData._id,
+            label: keyData.name,
+            key: keyData._id,
+            type: 'orderInput',
+            price:
+              users.parentType === 'me52'
+                ? keyData.user_type?.length > 2
+                  ? keyData.user_type[2].price
+                  : 0
+                : 0,
+            discount:
+              users.parentType === 'me52'
+                ? keyData.user_type?.length > 2
+                  ? keyData.user_type[2].discount
+                  : 0
+                : 0,
+            required: false,
+            ...(viewOnly ? { readonly: viewOnly } : {}),
+            value: keyMapData.hasOwnProperty(keyData._id)
+              ? keyMapData[keyData._id].toString()
+              : '',
+            features: [
+              { label: 'Location Tracking', active: keyData['location_tracking'] },
+              { label: 'SIM Tracking', active: keyData['sim_tracking'] },
+              { label: 'Image Notifications', active: keyData['image_notification'] },
+              { label: 'Video Notifications', active: keyData['video_notification'] },
+              { label: 'Phone Block', active: keyData['phone_block'] },
+            ],
+          });
+        }
+
+        setOrderForm(tempOrderForm);
+        setStatus('SUCCESS');
+      } catch {
+        setStatus('ERROR');
+      }
+    }
+  }, [orderData, users.parentType, users.token, viewOnly]);
+
+  useEffect(() => {
     let mounted = true;
-
-    console.log('ME52RETAILERTESTING', 'orderId', orderId);
-    console.log('ME52RETAILERTESTING', 'viewOnly', viewOnly);
-
     if (orderId) fetchOrderDetails(mounted, orderId);
-    else fetchKeyTypes(mounted);
-
+    else fetchKeyTypes(mounted, {});
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [orderId, fetchOrderDetails, fetchKeyTypes]);
 
   useEffect(() => {
-    fetchKeyTypes(true);
-  }, [keyMap]);
+    if (orderId && Object.keys(keyMap).length > 0) {
+      fetchKeyTypes(true, keyMap);
+    }
+  }, [keyMap, orderId, fetchKeyTypes]);
+
+  // ✅ FIX: make this type-safe for dynamic keys
+  const onValueChange = useCallback(
+    (field: OrderForm, value: any) => {
+      setOrderForm(prev => {
+        const updated = [...prev];
+        const idx = updated.findIndex(f => f.key === field.key);
+        if (idx !== -1) updated[idx] = { ...updated[idx], value };
+        return updated;
+      });
+      setValue(field?.key, value, { shouldDirty: true });
+    },
+    [setValue]
+  );
 
   const submitForm = async () => {
-    // Validation helper
-    const isValidNumber = (val: any) => {
-      // check it's an integer and greater than 0
-      return /^\d+$/.test(val) && Number(val) > 0;
-    };
-
-    // Check if at least one value is filled
+    const isValidNumber = (val: any) => /^\d+$/.test(val) && Number(val) > 0;
     const hasAtLeastOne = orderForm.some(order => isValidNumber(order.value));
     if (!hasAtLeastOne) {
       Toast.show({
@@ -197,30 +161,23 @@ const AddEditOrder = ({ navigation }: any) => {
       setStatus('SUCCESS');
       return;
     }
-
     try {
       setStatus('SUBMIT');
-      const keys: Array<{ keytype: string; asked: number; fulfilled: number }> = [];
-
-      for (let order of orderForm) {
-        if (isValidNumber(order.value)) {
-          keys.push({
-            keytype: order.key,
-            asked: Number(order.value),
-            fulfilled: 0,
-          });
-        }
-      }
+      const keys = orderForm
+        .filter(order => isValidNumber(order.value))
+        .map(order => ({
+          keytype: order.key,
+          asked: Number(order.value),
+          fulfilled: 0,
+        }));
 
       const apiData: any = {
         data: {
           ...(orderId ? { _id: orderId } : {}),
           type: orderType === 'return' ? 'return' : 'buy',
-          keys: keys,
+          keys,
         },
       };
-
-      console.log('ME52RETAILERTESTING', 'API data is here for order ', apiData);
 
       const response = orderId
         ? await updateOrder(apiData, users.token)
@@ -230,64 +187,73 @@ const AddEditOrder = ({ navigation }: any) => {
         Alert.alert(
           'Order',
           `Your Order ${orderId ? 'Updated' : 'Added'} successfully`,
-          [
-            {
-              text: 'Ok',
-              onPress: () => {
-                navigation.goBack();
-              },
-            },
-          ],
+          [{ text: 'Ok', onPress: () => navigation.goBack() }]
         );
       }
 
       setStatus('SUCCESS');
-    } catch (error) {
-      console.log('ME52RETAILERTESTING', 'Error while adding order ', error);
+    } catch {
       setStatus('ERROR');
     }
   };
 
-  const handleSubmit = async () => {
-    console.log('ME52RETAILERTESTING', 'Form submission ', orderForm);
-    await submitForm();
-  };
-
-  console.log('ME52RETAILERTESTING', 'ADD EDIT FOR ', 'orderForm', status);
+  const renderFields = useMemo(() => {
+    return orderForm?.map((field, index) => (
+      <OrderInput
+        key={field.key}
+        readonly={field.readonly}
+        label={field.label}
+        price={field.price}
+        discount={field.discount}
+        value={field.value}
+        onChangeText={(v: any) => onValueChange(field, v)}
+        features={field.features}
+        index={index}
+        control={control}
+        rules={{
+          required: field.required ? `${field.label} is required` : false,
+          validate: (val: any) => {
+            if (val && !/^\d+$/.test(val)) return 'Only numbers allowed';
+            return true;
+          },
+        }}
+        name={field.key}
+      />
+    ));
+  }, [orderForm, control, onValueChange]);
 
   return (
-    <CRootContainer style={[styles.orderContainer]}>
+    <CRootContainer style={styles.orderContainer}>
       <CHeader
-        title={viewOnly
-          ? 'View Order'
-          : orderId
-            ? 'Edit Order'
-            : orderType && orderType === 'return'
-              ? 'Return Order'
-              : 'Create Order'}
+        title={
+          viewOnly
+            ? 'View Order'
+            : orderId
+              ? 'Edit Order'
+              : orderType === 'return'
+                ? 'Return Order'
+                : 'Create Order'
+        }
       />
-      <View style={[styles.contentContainer]}>
-        {(status === 'LOADING' || status == 'SUBMIT') && <Overlay><Loader center={true} /></Overlay>}
+      <View style={styles.contentContainer}>
+        {(status === 'LOADING' || status === 'SUBMIT') && (
+          <Overlay>
+            <Loader center />
+          </Overlay>
+        )}
         {(status === 'SUCCESS' || status === 'SUBMIT') && (
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Forms
-              formFields={orderForm}
-              formState={orderForm}
-              setFormState={setOrderForm}
-              isCheckError={true}
-              errors={errors}
-              setErrors={setErrors}
-            />
-            {!viewOnly ? (
+            <View>{renderFields}</View>
+            {!viewOnly && (
               <View>
                 <Button
                   variant="darker"
                   title="Submit"
-                  onPress={handleSubmit}
+                  onPress={handleSubmit(submitForm)}
                   style={styles.btn}
                 />
               </View>
-            ) : null}
+            )}
             <Footer />
           </ScrollView>
         )}
@@ -299,17 +265,10 @@ const AddEditOrder = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   orderContainer: {
     flex: 1,
-    ...commonStyle.ph25
+    ...commonStyle.ph25,
   },
   contentContainer: {
     flex: 1,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    ...commonStyle.mt10,
-    gap: moderateScale(8),
   },
   btn: {
     width: '100%',
