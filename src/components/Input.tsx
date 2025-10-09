@@ -8,14 +8,19 @@ import {
   Platform,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Keyboard
+  Keyboard,
 } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetScrollView,
+} from '@gorhom/bottom-sheet';
+import { Controller, Control } from 'react-hook-form';
 import { useTheme } from '../theme/ThemeProvider';
 import { borderRadius, boxShadow } from '../styles/styles';
-import ShowIcon from "../assets/show-icon.svg"
-import { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { calculateEMISchedule, scaleSM } from '../utility/helpers';
-import { Controller, Control } from 'react-hook-form';
+import ShowIcon from '../assets/show-icon.svg';
 
 type InputProps = {
   label?: string;
@@ -36,7 +41,6 @@ type InputProps = {
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
   inputStyle?: ViewStyle;
-  // RHF props
   control?: Control<any>;
   name?: string;
   rules?: any;
@@ -62,160 +66,98 @@ const Input = ({
   inputStyle,
   control,
   name,
-  rules
+  rules,
 }: InputProps) => {
   const { colors, theme } = useTheme();
-  const bottomRef = useRef<BottomSheetModal>(null)
-  const inputRef = useRef<TextInput>(null)
-  const snapPoints = useMemo(() => [600], [])
-  const [bottomSheetData, setBottomSheetData] = useState<Array<any>>([])
-  const [bottomError, setBottomError] = useState(false)
+  const bottomRef = useRef<BottomSheetModal>(null);
+  const inputRef = useRef<TextInput>(null);
+  const snapPoints = useMemo(() => [600], []);
+  const [bottomSheetData, setBottomSheetData] = useState<Array<any>>([]);
+  const [bottomError, setBottomError] = useState(false);
 
   const openDrawer = () => {
     setTimeout(() => {
-      inputRef.current?.blur()
-      Keyboard.dismiss()
-    }, 0)
+      inputRef.current?.blur();
+      Keyboard.dismiss();
+    }, 0);
 
     if (formData) {
-      const calculationField = ["actualPrice", "prepaidPrice", "installmentType", "noOfEmis", "emiDate"]
-      const calculationFieldObj: Record<string, any> = {}
+      const calculationField = ['actualPrice', 'prepaidPrice', 'installmentType', 'noOfEmis', 'emiDate'];
+      const calculationFieldObj: Record<string, any> = {};
 
       for (let formD of formData) {
         if (formD.component) {
           for (let formDComp of formD.component) {
-            if (calculationField.includes(formDComp.key)) {
-              calculationFieldObj[formDComp.key] = formDComp.value
-            }
+            if (calculationField.includes(formDComp.key)) calculationFieldObj[formDComp.key] = formDComp.value;
           }
-        } else {
-          if (calculationField.includes(formD.key)) {
-            calculationFieldObj[formD.key] = formD.value
-          }
+        } else if (calculationField.includes(formD.key)) {
+          calculationFieldObj[formD.key] = formD.value;
         }
       }
 
-      let error = false
-      if (Object.keys(calculationFieldObj).length !== calculationField.length) {
-        error = true
-      }
-      for (let calculationFieldObjkey in calculationFieldObj) {
-        if (!calculationFieldObj[calculationFieldObjkey]) {
-          error = true
-        }
-      }
-      console.log('ME52RETAILERTESTING', "calculate field obj ", calculationFieldObj)
-      setBottomError(error)
+      let error = Object.keys(calculationFieldObj).length !== calculationField.length;
+      for (let key in calculationFieldObj) if (!calculationFieldObj[key]) error = true;
+
+      setBottomError(error);
       if (!error) {
         const calculatedEMISchedule = calculateEMISchedule(
-          calculationFieldObj["actualPrice" as any],
-          calculationFieldObj["prepaidPrice" as any],
-          calculationFieldObj["installmentType" as any],
-          calculationFieldObj["noOfEmis" as any],
-          calculationFieldObj["emiDate" as any]
-        )
-        console.log('ME52RETAILERTESTING', "CalculateEMISchedule is here ", calculatedEMISchedule)
-        setBottomSheetData(calculatedEMISchedule.emiDates)
+          calculationFieldObj['actualPrice'],
+          calculationFieldObj['prepaidPrice'],
+          calculationFieldObj['installmentType'],
+          calculationFieldObj['noOfEmis'],
+          calculationFieldObj['emiDate']
+        );
+        setBottomSheetData(calculatedEMISchedule.emiDates);
       }
     }
 
-    setTimeout(() => {
-      bottomRef.current?.present()
-    }, 50)
-  }
+    setTimeout(() => bottomRef.current?.present(), 50);
+  };
 
   const reCalculateScheduleOnChange = (e: string) => {
-    onChangeText?.(e)
+    onChangeText?.(e);
     setTimeout(() => {
-      if (formData) {
-        const calculationField = ["actualPrice", "prepaidPrice", "installmentType", "noOfEmis", "emiDate"]
-        const calculationFieldObj: Record<string, any> = {}
+      if (!formData) return;
+      const calculationField = ['actualPrice', 'prepaidPrice', 'installmentType', 'noOfEmis', 'emiDate'];
+      const calculationFieldObj: Record<string, any> = {};
 
-        for (let formD of formData) {
-          if (formD.component) {
-            for (let formDComp of formD.component) {
-              if (calculationField.includes(formDComp.key)) {
-                calculationFieldObj[formDComp.key] = formDComp.value
-              }
-            }
-          } else {
-            if (calculationField.includes(formD.key)) {
-              calculationFieldObj[formD.key] = formD.value
-            }
+      for (let formD of formData) {
+        if (formD.component) {
+          for (let formDComp of formD.component) {
+            if (calculationField.includes(formDComp.key)) calculationFieldObj[formDComp.key] = formDComp.value;
           }
-        }
-        calculationFieldObj["noOfEmis"] = e
-        let error = false
-        if (Object.keys(calculationFieldObj).length !== calculationField.length) {
-          error = true
-        }
-        for (let calculationFieldObjkey in calculationFieldObj) {
-          if (!calculationFieldObj[calculationFieldObjkey]) {
-            error = true
-          }
-        }
-        console.log('ME52RETAILERTESTING', "calculate field obj ", calculationFieldObj)
-        setBottomError(error)
-        if (!error) {
-          const calculatedEMISchedule = calculateEMISchedule(
-            calculationFieldObj["actualPrice" as any],
-            calculationFieldObj["prepaidPrice" as any],
-            calculationFieldObj["installmentType" as any],
-            calculationFieldObj["noOfEmis" as any],
-            calculationFieldObj["emiDate" as any]
-          )
-          console.log('ME52RETAILERTESTING', "CalculateEMISchedule is here ", calculatedEMISchedule)
-          setBottomSheetData(calculatedEMISchedule.emiDates)
+        } else if (calculationField.includes(formD.key)) {
+          calculationFieldObj[formD.key] = formD.value;
         }
       }
-    }, 500)
-  }
+
+      calculationFieldObj['noOfEmis'] = e;
+      let error = Object.keys(calculationFieldObj).length !== calculationField.length;
+      for (let key in calculationFieldObj) if (!calculationFieldObj[key]) error = true;
+
+      setBottomError(error);
+      if (!error) {
+        const calculatedEMISchedule = calculateEMISchedule(
+          calculationFieldObj['actualPrice'],
+          calculationFieldObj['prepaidPrice'],
+          calculationFieldObj['installmentType'],
+          calculationFieldObj['noOfEmis'],
+          calculationFieldObj['emiDate']
+        );
+        setBottomSheetData(calculatedEMISchedule.emiDates);
+      }
+    }, 500);
+  };
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
     ),
     []
   );
 
-  // Render Input either as RHF controlled or as normal
-  const renderInput = (inputValue?: string, onChange?: (value: string) => void) => (
-    <TextInput
-      ref={inputRef}
-      value={inputValue ?? value}
-      readOnly={readonly}
-      numberOfLines={1}
-      onChangeText={(e) => onChange ? onChange(e) : onChangeText?.(e)}
-      placeholder={placeholder}
-      placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
-      secureTextEntry={secureTextEntry}
-      maxLength={maxLength}
-      autoCapitalize={autoCapitalize}
-      autoCorrect={autoCorrect}
-      style={[
-        styles.input,
-        boxShadow,
-        borderRadius,
-        {
-          backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
-          paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
-          color: colors.text,
-          borderColor: error && colors.error,
-          borderWidth: error ? 1 : 0
-        },
-        inputStyle
-      ]}
-      keyboardType={keyboardType && keyboardType === 'email-address' ? 'email-address' : keyboardType && keyboardType === 'number' ? 'numeric' : 'default'}
-    />
-  );
-
   return (
-    <KeyboardAvoidingView style={[style]} behavior={Platform.OS == "ios" ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={[style]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {label && <Text style={[styles.label, { color: colors.text }]}>{label}</Text>}
       <View>
         {control && name ? (
@@ -245,14 +187,19 @@ const Input = ({
                     paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
                     color: colors.text,
                     borderColor: error && colors.error,
-                    borderWidth: error ? 1 : 0
+                    borderWidth: error ? 1 : 0,
                   },
-                  inputStyle
+                  inputStyle,
                 ]}
-                keyboardType={keyboardType && keyboardType === 'email-address' ? 'email-address' : keyboardType && keyboardType === 'number' ? 'numeric' : 'default'}
+                keyboardType={
+                  keyboardType === 'email-address'
+                    ? 'email-address'
+                    : keyboardType === 'number'
+                      ? 'numeric'
+                      : 'default'
+                }
               />
-            )
-            }
+            )}
           />
         ) : (
           <TextInput
@@ -260,7 +207,7 @@ const Input = ({
             value={value}
             readOnly={readonly}
             numberOfLines={1}
-            onChangeText={(e) => onChangeText?.(e)}
+            onChangeText={onChangeText}
             placeholder={placeholder}
             placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
             secureTextEntry={secureTextEntry}
@@ -276,52 +223,67 @@ const Input = ({
                 paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
                 color: colors.text,
                 borderColor: error && colors.error,
-                borderWidth: error ? 1 : 0
+                borderWidth: error ? 1 : 0,
               },
-              inputStyle
+              inputStyle,
             ]}
-            keyboardType={keyboardType && keyboardType === 'email-address' ? 'email-address' : keyboardType && keyboardType === 'number' ? 'numeric' : 'default'}
+            keyboardType={
+              keyboardType === 'email-address'
+                ? 'email-address'
+                : keyboardType === 'number'
+                  ? 'numeric'
+                  : 'default'
+            }
           />
         )}
 
-        {icon && <View style={{ position: 'absolute', right: '2%', top: '0%', width: 50, height: 50, zIndex: 10, padding: 15 }} pointerEvents='box-none'>
-          <TouchableOpacity
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} onPress={openDrawer}>
-            <ShowIcon />
-          </TouchableOpacity>
-        </View>
-        }
+        {icon && (
+          <View style={{ position: 'absolute', right: '2%', top: '0%', width: 50, height: 50, zIndex: 10, padding: 15 }} pointerEvents="box-none">
+            <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} onPress={openDrawer}>
+              <ShowIcon />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
+
       {error && <Text style={[styles.error, { color: colors.error }]}>{error}</Text>}
 
-      {/* Bottom Sheet */}
-      <BottomSheetModal
-        ref={bottomRef}
-        index={0}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        backdropComponent={renderBackdrop}
-      >
+      <BottomSheetModal ref={bottomRef} index={0} snapPoints={snapPoints} enablePanDownToClose backdropComponent={renderBackdrop}>
         <BottomSheetScrollView style={{ paddingVertical: 15, paddingHorizontal: 20, height: 600 }}>
-          <Text style={[{ textAlign: 'center', fontSize: 20, fontWeight: '600', marginBottom: 40, color: colors.textDark }]}>EMI Installments</Text>
-          <Input value={value} onChangeText={(e) => reCalculateScheduleOnChange(e)}
-            label='Number of Installment'
-            placeholder='Number of Installment' readonly={readonly} />
+          <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '600', marginBottom: 40, color: colors.textDark }}>
+            EMI Installments
+          </Text>
+          <Input value={value} onChangeText={reCalculateScheduleOnChange} label="Number of Installment" placeholder="Number of Installment" readonly={readonly} />
           {bottomError ? (
             <View style={{ flex: 1, justifyContent: 'center' }}>
-              <Text style={{ color: colors.text, alignSelf: 'center', justifyContent: 'center' }}>Please check Actual Price, Down Payment, Installment Type, EMI start date and Number of installment is filled</Text>
+              <Text style={{ color: colors.text, alignSelf: 'center', justifyContent: 'center' }}>
+                Please check Actual Price, Down Payment, Installment Type, EMI start date and Number of installment is filled
+              </Text>
             </View>
           ) : (
             <View style={{ marginTop: 25 }}>
               {bottomSheetData.map((bottomSheetD, index) => (
-                <View key={bottomSheetD.date} style={{ height: 65, flexDirection: "row", alignItems: 'center', justifyContent: "space-between", borderWidth: 1, borderColor: "#E1E1E1", borderRadius: 16, marginBottom: 25, paddingRight: 16 }}>
+                <View
+                  key={bottomSheetD.date}
+                  style={{
+                    height: 65,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderWidth: 1,
+                    borderColor: '#E1E1E1',
+                    borderRadius: 16,
+                    marginBottom: 25,
+                    paddingRight: 16,
+                  }}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <View style={{ width: 70, backgroundColor: '#F39314', height: 65, borderTopLeftRadius: 16, borderBottomLeftRadius: 16, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ color: "#FFFFFF", fontSize: 24 }}>{index + 1}</Text>
+                      <Text style={{ color: '#FFFFFF', fontSize: 24 }}>{index + 1}</Text>
                     </View>
                     <View style={{ marginLeft: 20 }}>
                       <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>{bottomSheetD.installmentType}</Text>
-                      <Text style={{ color: "#8F999E", fontSize: 14 }}>{bottomSheetD.date}</Text>
+                      <Text style={{ color: '#8F999E', fontSize: 14 }}>{bottomSheetD.date}</Text>
                     </View>
                   </View>
                   <Text style={{ color: colors.text }}>{bottomSheetD.amount}/-</Text>
@@ -335,7 +297,7 @@ const Input = ({
   );
 };
 
-export default React.memo(Input)
+export default React.memo(Input);
 
 const styles = StyleSheet.create({
   label: {
@@ -350,7 +312,7 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     fontSize: 16,
     marginBottom: 2,
-    height: 51
+    height: 51,
   },
   error: {
     marginTop: 2,
