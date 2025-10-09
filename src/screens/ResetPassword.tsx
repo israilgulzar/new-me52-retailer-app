@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     StyleSheet,
@@ -7,22 +7,24 @@ import {
     TouchableOpacity,
     Image,
 } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
+import Toast from 'react-native-toast-message';
+import { NavigationProp } from '@react-navigation/native';
+
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Text from '../components/Text';
+import Footer from '../components/Footer';
 import { useTheme } from '../theme/ThemeProvider';
 import { resetPasswordService } from '../services/login';
-import Footer from '../components/Footer';
-import Toast from 'react-native-toast-message';
-import ShowPassword from "../assets/eye-password-show-svgrepo-com 1.svg";
-import HidePassword from "../assets/Hide.svg";
-import { NavigationProp } from '@react-navigation/native';
-import { SCREENS } from '../navigation/screens';
 import CRootContainer from '../components/CRootContainer';
 import CHeader from '../components/CHeader';
 import { commonStyle } from '../theme';
 import { moderateScale } from '../common/constants';
+import { SCREENS } from '../navigation/screens';
+
+import ShowPassword from "../assets/eye-password-show-svgrepo-com 1.svg";
+import HidePassword from "../assets/Hide.svg";
 
 interface ResetPasswordForm {
     password: string;
@@ -63,24 +65,6 @@ export const ResetPassword = ({
 
     const onSubmit = async (data: ResetPasswordForm) => {
         const { password, confirmPassword } = data;
-
-        // Manual checks to match your previous logic
-        if (!password) {
-            setError('password', { type: 'manual', message: 'Password is required' });
-            return;
-        }
-        if (!confirmPassword) {
-            setError('confirmPassword', { type: 'manual', message: 'Confirm Password is required' });
-            return;
-        }
-        if (!validatePassword(password)) {
-            setError('password', {
-                type: 'manual',
-                message:
-                    'Password must be at least 8 characters, include one capital letter, one number, and one special character.',
-            });
-            return;
-        }
         if (password !== confirmPassword) {
             setError('confirmPassword', {
                 type: 'manual',
@@ -99,7 +83,6 @@ export const ResetPassword = ({
             });
 
             reset();
-
             navigation.navigate(SCREENS.Login);
         } catch (error: any) {
             console.log('Reset Password API Error:', error);
@@ -116,14 +99,14 @@ export const ResetPassword = ({
         <CRootContainer>
             <CHeader style={commonStyle.ph25} />
             <KeyboardAvoidingView
-                style={[styles.container]}
+                style={styles.container}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 {/* Header */}
                 <View style={styles.themeSwitchRow}>
                     <Image
                         source={require('../assets/me_secure_dark.png')}
-                        resizeMode='contain'
+                        resizeMode="contain"
                         style={{ width: moderateScale(100), height: moderateScale(100) }}
                     />
                     <Text style={{ color: colors.text, fontSize: moderateScale(32) }} numberOfLines={1}>
@@ -135,25 +118,19 @@ export const ResetPassword = ({
                 <View>
                     {/* Password Input */}
                     <View>
-                        <Controller
+                        <Input
                             control={control}
-                            name='password'
+                            name="password"
                             rules={{
                                 required: 'Password is required',
-                                validate: (val) =>
+                                validate: (val: string) =>
                                     validatePassword(val) ||
                                     'Password must be at least 8 characters, include one capital letter, one number, and one special character.',
                             }}
-                            render={({ field: { onChange, value } }) => (
-                                <Input
-                                    value={value}
-                                    onChangeText={onChange}
-                                    placeholder='New password'
-                                    secureTextEntry={!showPassword}
-                                    error={errors.password?.message}
-                                    style={styles.input}
-                                />
-                            )}
+                            placeholder="New password"
+                            secureTextEntry={!showPassword}
+                            error={errors.password?.message}
+                            style={styles.input}
                         />
 
                         <TouchableOpacity
@@ -167,24 +144,18 @@ export const ResetPassword = ({
 
                     {/* Confirm Password Input */}
                     <View>
-                        <Controller
+                        <Input
                             control={control}
-                            name='confirmPassword'
+                            name="confirmPassword"
                             rules={{
                                 required: 'Confirm Password is required',
-                                validate: (val) =>
+                                validate: (val: string) =>
                                     val === passwordValue || 'Password and Confirm should be same',
                             }}
-                            render={({ field: { onChange, value } }) => (
-                                <Input
-                                    value={value}
-                                    onChangeText={onChange}
-                                    placeholder='Confirm password'
-                                    secureTextEntry={!showConfirmPassword}
-                                    error={errors.confirmPassword?.message}
-                                    style={styles.input}
-                                />
-                            )}
+                            placeholder="Confirm password"
+                            secureTextEntry={!showConfirmPassword}
+                            error={errors.confirmPassword?.message}
+                            style={styles.input}
                         />
 
                         <TouchableOpacity
@@ -198,13 +169,13 @@ export const ResetPassword = ({
 
                     {/* Back to Login */}
                     <View style={{ flexDirection: 'row' }}>
-                        <Text variant='caption'>Go to Login ?</Text>
+                        <Text variant="caption">Go to Login ?</Text>
                         <TouchableOpacity
                             style={styles.forgotBtn}
                             onPress={() => navigation.navigate(SCREENS.Login)}
                         >
                             <Text
-                                variant='caption'
+                                variant="caption"
                                 style={{
                                     color: colors.orange,
                                     marginLeft: moderateScale(5),
@@ -220,7 +191,7 @@ export const ResetPassword = ({
                     <Button
                         title={isSubmitting ? 'Submitting...' : 'Continue'}
                         onPress={handleSubmit(onSubmit)}
-                        variant='darker'
+                        variant="darker"
                         fullWidth
                         style={commonStyle.mt50}
                         loading={isSubmitting}

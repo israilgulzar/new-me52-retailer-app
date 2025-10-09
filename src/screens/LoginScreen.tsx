@@ -70,22 +70,6 @@ export const LoginScreen = ({
 	const onLogin = useCallback(
 		async (data: LoginForm) => {
 			const { phoneNumber, countryCode, password } = data;
-
-			if (!phoneNumber) {
-				setError('phoneNumber', {
-					type: 'manual',
-					message: 'Please enter your phone number.',
-				});
-				return;
-			}
-			if (!password) {
-				setError('password', {
-					type: 'manual',
-					message: 'Please enter password.',
-				});
-				return;
-			}
-
 			try {
 				const dialingCode = getCountryCallingCode(countryCode as CountryCode);
 				const response = await loginService({
@@ -165,12 +149,11 @@ export const LoginScreen = ({
 						value={{ countryCode: 'IN', phoneNumber }}
 						rules={{
 							required: 'Please enter your phone number.',
-							minLength: { value: 5, message: 'Enter a valid phone number' },
+							minLength: { value: 10, message: 'Enter a valid phone number' },
 						}}
 						placeholder="Enter your phone number"
 						error={errors.phoneNumber?.message}
 						style={styles.input}
-						onChangeText={() => { }}
 					/>
 
 					{/* Password */}
@@ -178,8 +161,6 @@ export const LoginScreen = ({
 						<Input
 							control={control}
 							name="password"
-							value={password}
-							onChangeText={() => { }}
 							placeholder="Enter your password"
 							secureTextEntry={!showPassword}
 							error={errors.password?.message}
@@ -252,8 +233,8 @@ const styles = StyleSheet.create({
 	},
 	passwordIcon: {
 		position: 'absolute',
-		right: '5%',
-		top: '15%',
+		right: moderateScale(10),
+		top: moderateScale(15),
 	},
 	forgotRow: {
 		flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
     TextInput,
 } from 'react-native';
 import { countryCodes } from '../common/countries';
+import { darkColors, lightColors } from '../theme';
 
 interface CustomCountryPickerProps {
     visible: boolean;
@@ -31,30 +32,23 @@ const CountryCodePicker = ({
     const [slideAnim] = useState(new Animated.Value(0));
 
     useEffect(() => {
-        if (visible) {
-            Animated.timing(slideAnim, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-            }).start();
-        } else {
-            Animated.timing(slideAnim, {
-                toValue: 0,
-                duration: 300,
-                useNativeDriver: true,
-            }).start();
-        }
+        Animated.timing(slideAnim, {
+            toValue: visible ? 1 : 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
     }, [visible]);
 
     const filteredCountries = countryCodes?.filter(
         (c) =>
             c.key.toLowerCase().includes(search.toLowerCase()) ||
-            c.label.includes(search)
+            c.label.includes(search) ||
+            c.name.toLowerCase().includes(search.toLowerCase())
     );
 
     const translateY = slideAnim.interpolate({
         inputRange: [0, 1],
-        outputRange: [height, 0], // slide from bottom
+        outputRange: [height, 0],
     });
 
     const renderItem = ({ item }: any) => {
@@ -70,7 +64,7 @@ const CountryCodePicker = ({
                 <View style={styles.flagIcon}>
                     <FlagIcon />
                 </View>
-                <Text style={styles.itemText}>{item?.label}</Text>
+                <Text style={styles.itemText}>{item?.name}</Text>
             </TouchableOpacity>
         );
     };
@@ -87,13 +81,20 @@ const CountryCodePicker = ({
                         style={styles.searchInput}
                     />
                 </View>
-                <FlatList
-                    data={filteredCountries}
-                    keyExtractor={(item) => item.key}
-                    renderItem={renderItem}
-                    keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
-                />
+
+                {filteredCountries.length > 0 ? (
+                    <FlatList
+                        data={filteredCountries}
+                        keyExtractor={(item) => item.key}
+                        renderItem={renderItem}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    />
+                ) : (
+                    <View style={styles.noResultContainer}>
+                        <Text style={styles.noResultText}>No country found</Text>
+                    </View>
+                )}
             </Animated.View>
         </Modal>
     );
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         width: '100%',
         maxHeight: '70%',
-        backgroundColor: '#fff',
+        backgroundColor: lightColors.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingBottom: 20,
@@ -120,24 +121,33 @@ const styles = StyleSheet.create({
         borderBottomColor: '#ccc',
     },
     searchInput: {
-        backgroundColor: '#f1f1f1',
+        backgroundColor: darkColors.text,
         borderRadius: 10,
         padding: 10,
     },
     item: {
         flexDirection: 'row',
-        alignItems:"center",
+        alignItems: 'center',
         padding: 12,
         borderBottomWidth: 0.5,
         borderBottomColor: '#eee',
     },
-    flagIcon:{
-        width:"15%",
-        height: 25
+    flagIcon: {
+        width: '15%',
+        height: 25,
     },
     itemText: {
         fontSize: 16,
-        color: "#000000"
+        color: darkColors.black,
+    },
+    noResultContainer: {
+        padding: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    noResultText: {
+        fontSize: 16,
+        color: darkColors?.black,
     },
 });
 

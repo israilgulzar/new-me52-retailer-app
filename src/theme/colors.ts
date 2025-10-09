@@ -30,4 +30,5 @@ export const darkColors = {
   text: '#E0E0E0', // Light grey
   card: '#1E1E1E',
   error: '#EF9A9A',
+  black: "#000000"
 };

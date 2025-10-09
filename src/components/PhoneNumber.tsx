@@ -18,7 +18,7 @@ interface PhoneumberProps {
   label?: string;
   error?: string;
   placeholder: string;
-  onChangeText: (text: string, key?: string) => void;
+  onChangeText?: any;
   value: {
     countryCode: any;
     phoneNumber: string;

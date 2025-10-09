@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Text from '../components/Text';
@@ -35,12 +35,6 @@ export const ForgotPasswordScreen = ({ route, navigation }: { route: any; naviga
 	const onSubmit = async (data: ForgotPasswordForm) => {
 		try {
 			const { email } = data;
-
-			// Basic validation
-			if (!email.trim()) {
-				setError('email', { type: 'manual', message: 'Please enter your email' });
-				return;
-			}
 
 			await forgotPasswordService({ email });
 
@@ -81,9 +75,9 @@ export const ForgotPasswordScreen = ({ route, navigation }: { route: any; naviga
 						</Text>
 					) : (
 						<>
-							<Controller
+							<Input
 								control={control}
-								name='email'
+								name="email"
 								rules={{
 									required: 'Please enter your email',
 									pattern: {
@@ -91,15 +85,9 @@ export const ForgotPasswordScreen = ({ route, navigation }: { route: any; naviga
 										message: 'Please enter a valid email address',
 									},
 								}}
-								render={({ field: { onChange, value } }) => (
-									<Input
-										value={value}
-										onChangeText={onChange}
-										placeholder='Enter your email'
-										error={errors.email?.message}
-										style={styles.input}
-									/>
-								)}
+								placeholder="Enter your email"
+								error={errors.email?.message}
+								style={styles.input}
 							/>
 
 							<Button
@@ -107,15 +95,15 @@ export const ForgotPasswordScreen = ({ route, navigation }: { route: any; naviga
 								onPress={handleSubmit(onSubmit)}
 								fullWidth
 								loading={isSubmitting}
-								variant='darker'
+								variant="darker"
 								style={commonStyle.mt20}
 							/>
 
 							<Button
-								title='Back to Login'
+								title="Back to Login"
 								onPress={() => navigation.goBack()}
 								fullWidth
-								variant='outline_darker'
+								variant="outline_darker"
 								style={commonStyle.mt10}
 							/>
 						</>

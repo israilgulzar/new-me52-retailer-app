@@ -1,23 +1,22 @@
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Image, TextInput } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
+import { NavigationProp } from '@react-navigation/native';
+import Toast from 'react-native-toast-message';
 import Button from '../components/Button';
 import Text from '../components/Text';
-import { useTheme } from '../theme/ThemeProvider';
-import { useAuth } from '../context/AuthContext';
-import { scaleSM } from '../utility/helpers';
 import Footer from '../components/Footer';
-import { NavigationProp } from '@react-navigation/native';
-import { SCREENS } from '../navigation/screens';
-import { boxShadow } from '../styles/styles';
 import CRootContainer from '../components/CRootContainer';
 import CHeader from '../components/CHeader';
-import { getHeight, moderateScale } from '../common/constants';
+import { useTheme } from '../theme/ThemeProvider';
+import { useAuth } from '../context/AuthContext';
+import { moderateScale } from '../common/constants';
+import { SCREENS } from '../navigation/screens';
+import { boxShadow } from '../styles/styles';
 import { commonStyle } from '../theme';
-import Toast from 'react-native-toast-message';
 import { verifyOTPService } from '../services/login';
 
-export const OTPVerification = ({ route, navigation }: { route: any, navigation: NavigationProp<any> }) => {
+export const OTPVerification = ({ route, navigation }: { route: any; navigation: NavigationProp<any> }) => {
 	const email = route.params.email;
 	const { theme, colors } = useTheme();
 	const { users } = useAuth();
@@ -26,9 +25,43 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 
 	const { control, handleSubmit, setValue, getValues, reset } = useForm({
 		defaultValues: {
-			code: ['', '', '', ''], // RHF manages the OTP array
+			code: ['', '', '', ''],
 		},
 	});
+
+	const handleChange = (text: string, index: number) => {
+		const chars = text.split('');
+		const newCode = [...getValues('code')];
+
+		if (chars.length === 1) {
+			newCode[index] = chars[0];
+			setValue('code', newCode);
+			if (index < inputs.current.length - 1) inputs.current[index + 1]?.focus();
+		} else if (chars.length > 1) {
+			chars.forEach((char, i) => {
+				if (index + i < 4) newCode[index + i] = char;
+			});
+			setValue('code', newCode);
+		}
+	};
+
+	const handleKeyPress = (e: any, index: number) => {
+		const { key } = e.nativeEvent;
+		const codeArray = getValues('code');
+
+		if (key === 'Backspace') {
+			if (codeArray[index]) {
+				const newCode = [...codeArray];
+				newCode[index] = '';
+				setValue('code', newCode);
+			} else if (index > 0) {
+				inputs.current[index - 1]?.focus();
+				const newCode = [...codeArray];
+				newCode[index - 1] = '';
+				setValue('code', newCode);
+			}
+		}
+	};
 
 	const onLogin = async (data: { code: string[] }) => {
 		const codeValue = data.code.join('');
@@ -39,6 +72,7 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 				text2: 'Please enter a valid OTP',
 			});
 		}
+
 		setLoading(true);
 		try {
 			const res = await verifyOTPService(email, codeValue, users.token);
@@ -66,48 +100,11 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 		}
 	};
 
-	const handleChange = (text: string, index: number) => {
-		const chars = text.split('');
-		const newCode = [...getValues('code')];
-
-		if (chars.length === 1) {
-			newCode[index] = chars[0];
-			setValue('code', newCode);
-			if (index < inputs.current.length - 1) {
-				inputs.current[index + 1]?.focus();
-			}
-		} else if (chars.length > 1) {
-			chars.forEach((char, i) => {
-				if (index + i < 4) {
-					newCode[index + i] = char;
-				}
-			});
-			setValue('code', newCode);
-		}
-	};
-
-	const handleKeyPress = (e: any, index: number) => {
-		const { key } = e.nativeEvent;
-		const codeArray = getValues('code');
-		if (key === 'Backspace') {
-			if (codeArray[index]) {
-				const newCode = [...codeArray];
-				newCode[index] = '';
-				setValue('code', newCode);
-			} else if (index > 0) {
-				inputs.current[index - 1]?.focus();
-				const newCode = [...codeArray];
-				newCode[index - 1] = '';
-				setValue('code', newCode);
-			}
-		}
-	};
-
 	return (
 		<CRootContainer>
 			<CHeader style={commonStyle.ph25} />
 			<KeyboardAvoidingView
-				style={[styles.container]}
+				style={styles.container}
 				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 			>
 				<View style={styles.themeSwitchRow}>
@@ -116,16 +113,11 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 						resizeMode="contain"
 						style={{ width: moderateScale(100), height: moderateScale(100) }}
 					/>
-					<Text
-						style={{
-							color: colors.text,
-							fontSize: moderateScale(32),
-						}}
-						numberOfLines={1}
-					>
+					<Text style={{ color: colors.text, fontSize: moderateScale(32) }} numberOfLines={1}>
 						OTP Verification
 					</Text>
 				</View>
+
 				<View>
 					<View style={commonStyle.mb20}>
 						<Text style={{ color: colors.textLight, textAlign: 'center' }}>
@@ -135,7 +127,8 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 							{email ?? 'test@mail.com'}
 						</Text>
 					</View>
-					<View style={[styles.otpcontainer]}>
+
+					<View style={styles.otpcontainer}>
 						{[0, 1, 2, 3].map((index) => (
 							<Controller
 								key={index}
@@ -147,7 +140,7 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 											boxShadow,
 											{
 												backgroundColor: '#fff',
-												height: getHeight(50),
+												height: moderateScale(50),
 												width: moderateScale(40),
 												padding: 0,
 												borderRadius: moderateScale(5),
@@ -155,7 +148,7 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 										]}
 									>
 										<TextInput
-											ref={(ref:any) => (inputs.current[index] = ref)}
+											ref={(ref: any) => (inputs.current[index] = ref)}
 											style={{ color: colors.orange, fontSize: 18 }}
 											keyboardType="number-pad"
 											maxLength={1}
@@ -170,14 +163,16 @@ export const OTPVerification = ({ route, navigation }: { route: any, navigation:
 							/>
 						))}
 					</View>
+
 					<Button
-						title={'Continue'}
+						title="Continue"
 						onPress={handleSubmit(onLogin)}
 						variant="darker"
 						fullWidth
 						style={commonStyle.mt50}
 						loading={loading}
 					/>
+
 					<View style={{ position: 'absolute', bottom: '-70%', alignSelf: 'center' }}>
 						<Footer />
 					</View>
