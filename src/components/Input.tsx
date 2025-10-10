@@ -165,76 +165,87 @@ const Input = ({
             control={control}
             name={name}
             rules={rules}
-            render={({ field: { value: ctrlValue, onChange: ctrlOnChange } }) => (
-              <TextInput
-                ref={inputRef}
-                value={ctrlValue}
-                readOnly={readonly}
-                numberOfLines={1}
-                onChangeText={(e) => ctrlOnChange(e)}
-                placeholder={placeholder}
-                placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
-                secureTextEntry={secureTextEntry}
-                maxLength={maxLength}
-                autoCapitalize={autoCapitalize}
-                autoCorrect={autoCorrect}
-                style={[
-                  styles.input,
-                  boxShadow,
-                  borderRadius,
-                  {
-                    backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
-                    paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
-                    color: colors.text,
-                    borderColor: error && colors.error,
-                    borderWidth: error ? 1 : 0,
-                  },
-                  inputStyle,
-                ]}
-                keyboardType={
-                  keyboardType === 'email-address'
-                    ? 'email-address'
-                    : keyboardType === 'number'
-                      ? 'numeric'
-                      : 'default'
-                }
-              />
-            )}
+            render={({ field: { value: ctrlValue, onChange: ctrlOnChange }, fieldState: { error } }) => {
+              return (
+                <>
+                  <TextInput
+                    ref={inputRef}
+                    value={ctrlValue}
+                    readOnly={readonly}
+                    numberOfLines={1}
+                    onChangeText={(e) => {
+                      ctrlOnChange(e)
+                      onChangeText?.(e);
+                    }}
+                    placeholder={placeholder}
+                    placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
+                    secureTextEntry={secureTextEntry}
+                    maxLength={maxLength}
+                    autoCapitalize={autoCapitalize}
+                    autoCorrect={autoCorrect}
+                    style={[
+                      styles.input,
+                      boxShadow,
+                      borderRadius,
+                      {
+                        backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                        paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
+                        color: colors.text,
+                        borderColor: error && colors.error,
+                        borderWidth: error ? 1 : 0,
+                      },
+                      inputStyle,
+                    ]}
+                    keyboardType={
+                      keyboardType === 'email-address'
+                        ? 'email-address'
+                        : keyboardType === 'number'
+                          ? 'numeric'
+                          : 'default'
+                    }
+                  />
+                  {error && <Text style={[styles.error, { color: colors.error }]}>{error?.message}</Text>}
+                </>
+              )
+            }}
           />
         ) : (
-          <TextInput
-            ref={inputRef}
-            value={value}
-            readOnly={readonly}
-            numberOfLines={1}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
-            secureTextEntry={secureTextEntry}
-            maxLength={maxLength}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={autoCorrect}
-            style={[
-              styles.input,
-              boxShadow,
-              borderRadius,
-              {
-                backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
-                paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
-                color: colors.text,
-                borderColor: error && colors.error,
-                borderWidth: error ? 1 : 0,
-              },
-              inputStyle,
-            ]}
-            keyboardType={
-              keyboardType === 'email-address'
-                ? 'email-address'
-                : keyboardType === 'number'
-                  ? 'numeric'
-                  : 'default'
-            }
-          />
+          <>
+            <TextInput
+              ref={inputRef}
+              value={value}
+              readOnly={readonly}
+              numberOfLines={1}
+              onChangeText={onChangeText}
+              placeholder={placeholder}
+              placeholderTextColor={theme === 'dark' ? '#BDBDBD' : colors.textDarker}
+              secureTextEntry={secureTextEntry}
+              maxLength={maxLength}
+              autoCapitalize={autoCapitalize}
+              autoCorrect={autoCorrect}
+              style={[
+                styles.input,
+                boxShadow,
+                borderRadius,
+                {
+                  backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                  paddingLeft: searchPadding ? 50 : phoneNumberPadding ? scaleSM(phoneNumberPadding) : 20,
+                  color: colors.text,
+                  borderColor: error && colors.error,
+                  borderWidth: error ? 1 : 0,
+                },
+                inputStyle,
+              ]}
+              keyboardType={
+                keyboardType === 'email-address'
+                  ? 'email-address'
+                  : keyboardType === 'number'
+                    ? 'numeric'
+                    : 'default'
+              }
+            />
+            {error && <Text style={[styles.error, { color: colors.error }]}>{error}</Text>}
+          </>
         )}
 
         {icon && (
@@ -245,9 +256,7 @@ const Input = ({
           </View>
         )}
       </View>
-
-      {error && <Text style={[styles.error, { color: colors.error }]}>{error}</Text>}
-
+      
       <BottomSheetModal ref={bottomRef} index={0} snapPoints={snapPoints} enablePanDownToClose backdropComponent={renderBackdrop}>
         <BottomSheetScrollView style={{ paddingVertical: 15, paddingHorizontal: 20, height: 600 }}>
           <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: '600', marginBottom: 40, color: colors.textDark }}>

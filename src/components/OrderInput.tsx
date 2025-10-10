@@ -26,7 +26,7 @@ const OrderInput = ({ label, value, onChangeText, features, index, discount, pri
     const [showFeature, setShowFeature] = useState(false)
     const { colors } = useTheme()
     // features = [{label: 'SIM Tracking', active: true}, {label: 'Marketing Notification', active: false}]
-
+    
     return (
         <Card style={styles.card}>
             <View>
@@ -39,8 +39,6 @@ const OrderInput = ({ label, value, onChangeText, features, index, discount, pri
                 {
                     (control && name) ?
                         <Input
-                            value={value}
-                            onChangeText={(e) => onChangeText(e)}
                             placeholder={`Enter ${label}`}
                             keyboardType="number"
                             readonly={readonly}

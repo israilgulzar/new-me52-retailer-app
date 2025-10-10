@@ -2,6 +2,7 @@ import React, {
 	useCallback,
 	useEffect,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 } from 'react';
@@ -51,6 +52,19 @@ import CHeader from '../components/CHeader';
 import { commonStyle } from '../theme';
 import { getHeight } from '../common/constants';
 import Toast from 'react-native-toast-message';
+import { useForm } from 'react-hook-form';
+import Input from '../components/Input';
+import TextArea from '../components/TextArea';
+import PhoneNumber from '../components/PhoneNumber';
+import Dropdown from '../components/Dropdown';
+import Uploader from '../components/Uploader';
+import BarcodeInput from '../components/BarcodeInput';
+import Checkbox from '../components/Checkbox';
+import SignPad from '../components/SignPad';
+import OrderInput from '../components/OrderInput';
+import TimePicker from '../components/Time';
+import Datepicker from '../components/Date';
+
 
 type STATUS = 'LOADING' | 'SUCCESS' | 'ERROR';
 
@@ -77,6 +91,31 @@ const AddCustomerScreen = ({
 	const [isEdit, setIsEdit] = useState<boolean>(false);
 	const [originalFormStructure, setOriginalFormStructure] = useState<any>([]);
 	const [formFieldStructure, setFormFieldStructure] = useState<any>([]);
+
+	const { control, setValue, trigger } = useForm({ mode: 'onChange' });
+
+	// identical update logic
+	const updateField = useCallback((field:any, value: any) => {
+	  try {
+		setValue(field.key, value, { shouldValidate: true, shouldDirty: true });
+	  } catch {}
+	  setFormFieldStructure((prev: any) => {
+		const updated = [...prev];
+		const index = updated.findIndex(item => item.key === field.key);
+		if (index !== -1) {
+		  updated[index] = { ...updated[index], value };
+		} else {
+		  updated.forEach(p => {
+			if (p.component) {
+			  const ci = p.component.findIndex((c: { key: any; }) => c.key === field.key);
+			  if (ci !== -1) p.component[ci] = { ...p.component[ci], value };
+			}
+		  });
+		}
+		return updated;
+	  });
+	  trigger(field.key).catch(() => {});
+	}, [setValue, trigger]);
 
 
 	const addUserId = useRef(null);
@@ -1071,6 +1110,202 @@ const AddCustomerScreen = ({
 			setFormFieldStructure(readonlyRestored);
 		}
 	};
+
+	const renderFields = useMemo(() => {
+		return formFieldStructure?.map((field: any, index: any) => {
+			switch (field.type) {
+				case 'text':
+				case 'number':
+					return (
+						<Input
+							key={field.key}
+							name={field.key}
+							control={control}
+							rules={{
+								required: field.required ? `${field.label} is required` : false,
+								validate: (val: any) => {
+									if (['imei1', 'imei2'].includes(field.key)) {
+										if (!val) return `${field.label} is required`;
+										if (!/^[0-9]{15}$/.test(val)) return `${field.label} must be 15 digits`;
+									}
+									if (field.key === 'pincode') {
+										if (!val) return `${field.label} is required`;
+										if (val?.length !== 6) return `${field.label} should be 6 digits`;
+									}
+									return true;
+								},
+							}}
+							value={field.value}
+							placeholder={field.label}
+							error={errors[field.key]}
+							readonly={field.readonly}
+							keyboardType={field.keyboardType || field.type}
+							inputStyle={field.key === 'address' ? { height: getHeight(100) } : undefined}
+							onChangeText={e => updateField(field, e)}
+						/>
+					);
+
+				case 'textArea':
+					return (
+						<TextArea
+							key={field.key}
+							name={field.key}
+							control={control}
+							rules={{ required: field.required ? `${field.label} is required` : false }}
+							value={field.value}
+							placeholder={field.label}
+							error={errors[field.key]}
+							onChangeText={(e: any) => updateField(field, e)}
+						/>
+					);
+
+				case 'phonenumber':
+					return (
+						<PhoneNumber
+							key={field.key}
+							control={control}
+							rules={{
+								required: field.required ? `${field.label} is required` : false,
+							}}
+							onChangeText={(e: any, key: any) => updateField(field, e, key)}
+							error={errors[field.key]}
+							value={{
+								countryCode: field.key === 'phoneNumber'
+									? field.value?.countryCode
+									: field.value?.alternateCountryCode,
+								phoneNumber: field.key === 'phoneNumber'
+									? field.value?.phoneNumber
+									: field.value?.alternateNumber,
+							}}
+							placeholder={field.label}
+							name={{
+								countryCode: field.key === 'phoneNumber'
+									? 'countryCode'
+									: 'alternateCountryCode',
+								phoneNumber: field.key === 'phoneNumber'
+									? 'phoneNumber'
+									: 'alternateNumber',
+							}}
+							readonly={field.readonly}
+							maxLength={field.maxLength}
+						/>
+					);
+
+				case 'dropdown':
+					return (
+						<Dropdown
+							key={field.key}
+							control={control}
+							name={field.key}
+							options={field.options || []}
+							multiple={field.multiple}
+							value={field.value}
+							error={errors[field.key]}
+							listModal={field.listModal}
+							search={field.search}
+							apiDetails={field.apiDetails}
+							placeholder={field.label}
+							readonly={field.readonly}
+							onChangeText={(e: any) => updateField(field, e)}
+						/>
+					);
+
+				case 'date':
+					return (
+						<Datepicker
+							key={field.key}
+							value={field.value}
+							error={errors[field.key]}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+							maxDate={field.maxDate}
+							minDate={field.minDate}
+							placeholder={field.placeholder || field.label}
+						/>
+					);
+
+				case 'file':
+					return (
+						<Uploader
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+						/>
+					);
+
+				case 'barcode':
+					return (
+						<BarcodeInput
+							key={field.key}
+							control={control}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							placeholder={field.label}
+							name={field.name}
+							readonly={field.readonly}
+							error={errors[field.key]}
+							iconReadonly={field.iconReadonly}
+						/>
+					);
+
+				case 'checkbox':
+					return (
+						<Checkbox
+							key={field.key}
+							value={field.value}
+							label={field.label}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+							error={errors[field.key]}
+							terms={field.terms}
+							border={field.border}
+						/>
+					);
+
+				case 'signaturePad':
+					return (
+						<SignPad
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							readonly={field.readonly}
+							label={field.label}
+							error={errors[field.key]}
+							name={field.key}
+						/>
+					);
+
+				case 'orderInput':
+					return (
+						<OrderInput
+							key={field.key}
+							readonly={field.readonly}
+							label={field.label}
+							price={field.price}
+							discount={field.discount}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							features={field.features}
+							index={index}
+						/>
+					);
+
+				case 'time':
+					return (
+						<TimePicker
+							key={field.key}
+							value={field.value}
+							onChangeText={(e: any) => updateField(field, e)}
+							label={field.label}
+						/>
+					);
+
+				default:
+					return null;
+			}
+		});
+	}, [formFieldStructure, errors, control, updateField]);
 
 	return (
 		<CRootContainer style={styles.card}>

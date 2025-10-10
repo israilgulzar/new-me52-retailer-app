@@ -1,11 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
 import moment from "moment";
-import { StyleSheet, Text, TextInput, View, ViewStyle, NativeSyntheticEvent, TextInputKeyPressEventData, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  ViewStyle,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
+  TouchableOpacity,
+} from "react-native";
+import { Controller } from "react-hook-form";
 import { useTheme } from "../theme/ThemeProvider";
 import { boxShadow } from "../styles/styles";
 import { commonStyle } from "../theme";
 import { moderateScale } from "../common/constants";
+const pad2 = (n: number) => String(n).padStart(2, "0");
 
+const sanitizeDigits = (s: string) =>
+  s
+    .split("")
+    .map((c) => (/[0-9]/.test(c) ? c : /[a-z]/i.test(c) ? "0" : "")) // letters → "0", others removed
+    .join("");
 interface TimePickerProps {
   value: number; // unix seconds
   label?: string;
@@ -13,14 +29,10 @@ interface TimePickerProps {
   style?: ViewStyle;
   readonly?: boolean;
   placeholder?: string; // ignored here; we show per-field placeholders HH/MM
+  control?: any;
+  name?: any;
+  rules?: any;
 }
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-const sanitizeDigits = (s: string) =>
-  s
-    .split("")
-    .map((c) => (/[0-9]/.test(c) ? c : /[a-z]/i.test(c) ? "0" : "")) // letters → "0", others removed
-    .join("");
 
 export default function TimePicker({
   value,
@@ -28,8 +40,10 @@ export default function TimePicker({
   onChangeText,
   style,
   readonly,
+  control,
+  rules,
+  name,
 }: TimePickerProps) {
-
   const { colors, theme } = useTheme();
   const [ampm, setAmpm] = useState<string>("AM");
   const [hh, setHh] = useState<string>("");
@@ -47,7 +61,7 @@ export default function TimePicker({
     }
     const d = new Date(value * 1000);
     const h = d.getHours();
-    setAmpm(h > 11 ? "PM" : "AM")
+    setAmpm(h > 11 ? "PM" : "AM");
     setHh(pad2(h > 11 ? h - 12 : h));
     setMm(pad2(d.getMinutes()));
   }, [value]);
@@ -64,8 +78,8 @@ export default function TimePicker({
       minNum = Math.max(0, Math.min(minNum, 59));
 
       // Use moment to handle AM/PM conversion
-      let time = moment().startOf('day');
-      if (ampmParam === 'AM') {
+      let time = moment().startOf("day");
+      if (ampmParam === "AM") {
         // 12 AM is 0 hour
         time = time.hour(hourNum === 12 ? 0 : hourNum).minute(minNum);
       } else {
@@ -152,14 +166,18 @@ export default function TimePicker({
   };
 
   // Backspace at start of minutes → go back to hours
-  const onMinutesKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+  const onMinutesKeyPress = (
+    e: NativeSyntheticEvent<TextInputKeyPressEventData>
+  ) => {
     if (e.nativeEvent.key === "Backspace" && mm.length === 0) {
       hhRef.current?.focus();
     }
   };
 
   // When hours filled and user presses backspace at start → stay there
-  const onHoursKeyPress = (_e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+  const onHoursKeyPress = (
+    _e: NativeSyntheticEvent<TextInputKeyPressEventData>
+  ) => {
     // noop for now; RN numeric keyboards vary in onKeyPress support
   };
 
@@ -167,36 +185,111 @@ export default function TimePicker({
 
   return (
     <View style={[style, { minHeight: 51 }]}>
-      {label ? <Text style={[styles.label, { color: colors.text }]}>{label}</Text> : null}
-
-      <View style={[styles.row, boxShadow, { backgroundColor: theme === "dark" ? "#232323" : "#FFF" }, disabledStyle]}>
-        <TextInput
-          ref={hhRef}
-          value={hh}
-          onChangeText={handleHoursChange}
-          onKeyPress={onHoursKeyPress}
-          editable={!readonly}
-          keyboardType="number-pad"
-          placeholder="HH"
-          maxLength={2}
-          style={[styles.part, { color: colors.text }]}
+      {label ? (
+        <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      ) : null}
+      {control && name ? (
+        <Controller
+          control={control}
+          name={name}
+          rules={rules}
+          defaultValue={value ?? Math.floor(Date.now() / 1000)}
+          render={({ field: { onChange, value: formValue } }) => {
+            return (
+              <View
+                style={[
+                  styles.row,
+                  boxShadow,
+                  {
+                    backgroundColor:
+                      theme === "dark" ? "#232323" : "#FFF",
+                  },
+                  disabledStyle,
+                ]}
+              >
+                <TextInput
+                  ref={hhRef}
+                  value={hh}
+                  onChangeText={handleHoursChange}
+                  onKeyPress={onHoursKeyPress}
+                  editable={!readonly}
+                  keyboardType="number-pad"
+                  placeholder="HH"
+                  maxLength={2}
+                  style={[styles.part, { color: colors.text }]}
+                />
+                <Text style={[styles.colon, { color: colors.text }]}>:</Text>
+                <TextInput
+                  ref={mmRef}
+                  value={mm}
+                  onChangeText={handleMinutesChange}
+                  onKeyPress={onMinutesKeyPress}
+                  editable={!readonly}
+                  keyboardType="number-pad"
+                  placeholder="MM"
+                  maxLength={2}
+                  style={[styles.part, { color: colors.text }]}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.ampmcontainer,
+                    { backgroundColor: colors.borderLighter },
+                  ]}
+                  onPress={onPressAmPm}
+                >
+                  <Text style={[styles.ampm, { color: colors.text }]}>
+                    {ampm}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }}
         />
-        <Text style={[styles.colon, { color: colors.text }]}>:</Text>
-        <TextInput
-          ref={mmRef}
-          value={mm}
-          onChangeText={handleMinutesChange}
-          onKeyPress={onMinutesKeyPress}
-          editable={!readonly}
-          keyboardType="number-pad"
-          placeholder="MM"
-          maxLength={2}
-          style={[styles.part, { color: colors.text }]}
-        />
-        <TouchableOpacity style={[styles.ampmcontainer, { backgroundColor: colors.borderLighter }]} onPress={onPressAmPm}>
-          <Text style={[styles.ampm, { color: colors.text }]}>{ampm}</Text>
-        </TouchableOpacity>
-      </View>
+      ) : (
+        <View
+          style={[
+            styles.row,
+            boxShadow,
+            {
+              backgroundColor: theme === "dark" ? "#232323" : "#FFF",
+            },
+            disabledStyle,
+          ]}
+        >
+          <TextInput
+            ref={hhRef}
+            value={hh}
+            onChangeText={handleHoursChange}
+            onKeyPress={onHoursKeyPress}
+            editable={!readonly}
+            keyboardType="number-pad"
+            placeholder="HH"
+            maxLength={2}
+            style={[styles.part, { color: colors.text }]}
+          />
+          <Text style={[styles.colon, { color: colors.text }]}>:</Text>
+          <TextInput
+            ref={mmRef}
+            value={mm}
+            onChangeText={handleMinutesChange}
+            onKeyPress={onMinutesKeyPress}
+            editable={!readonly}
+            keyboardType="number-pad"
+            placeholder="MM"
+            maxLength={2}
+            style={[styles.part, { color: colors.text }]}
+          />
+          <TouchableOpacity
+            style={[
+              styles.ampmcontainer,
+              { backgroundColor: colors.borderLighter },
+            ]}
+            onPress={onPressAmPm}
+          >
+            <Text style={[styles.ampm, { color: colors.text }]}>{ampm}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -218,7 +311,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   part: {
-    // flex: 1,
     paddingVertical: 6,
   },
   colon: {
@@ -230,6 +322,5 @@ const styles = StyleSheet.create({
     ...commonStyle.p5,
     borderRadius: moderateScale(8),
   },
-  ampm: {
-  }
+  ampm: {},
 });

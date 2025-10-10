@@ -1,10 +1,8 @@
 import RNDateTimePicker, {
-  DateTimePickerAndroid,
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { useTheme } from '../theme/ThemeProvider';
 import {
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -12,9 +10,9 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import React, { useState } from 'react';
 import { borderRadius, boxShadow, inputPadding } from '../styles/styles';
+import { Controller } from 'react-hook-form';
 
 interface DatePickerProps {
   value: number;
@@ -25,7 +23,10 @@ interface DatePickerProps {
   readonly?: boolean,
   maxDate?: Number,
   minDate?: Date,
-  placeholder?: string
+  placeholder?: string,
+  control?: any
+  name?: any
+  rules?: any
 }
 
 const Datepicker = ({
@@ -37,7 +38,10 @@ const Datepicker = ({
   readonly,
   maxDate,
   placeholder,
-  minDate
+  minDate,
+  control,
+  rules,
+  name
 }: DatePickerProps) => {
   const [show, setShow] = useState(false)
   const { colors, theme } = useTheme();
@@ -92,25 +96,60 @@ const Datepicker = ({
         style={[styles.datecontainer]}
         disabled={readonly}
       >
-        <TextInput
-          value={selectedDate}
-          readOnly
-          style={[
-            styles.input,
-            {
-              backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
-              color: colors.text,
-              borderColor: error && colors.error,
-              borderWidth: error ? 1 : 0
-              // shadowColor: theme === 'dark' ? colors.primary : undefined,
-            },
-            boxShadow,
-            inputPadding,
-            borderRadius
-          ]}
-          placeholderTextColor={colors.textDarker}
-          placeholder={placeholder}
-        />
+        {
+          (control && name) ?
+            <Controller
+              control={control}
+              name={name}
+              rules={rules}
+              defaultValue={value ?? Math.floor(Date.now() / 1000)}
+              render={({ field: { onChange, value: formValue } }) => {
+                return (
+                  <TextInput
+                    value={formValue}
+                    readOnly
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                        color: colors.text,
+                        borderColor: error && colors.error,
+                        borderWidth: error ? 1 : 0
+                        // shadowColor: theme === 'dark' ? colors.primary : undefined,
+                      },
+                      boxShadow,
+                      inputPadding,
+                      borderRadius
+                    ]}
+                    placeholderTextColor={colors.textDarker}
+                    placeholder={placeholder}
+                  />
+                )
+              }
+              }
+            />
+            :
+            <TextInput
+              value={selectedDate}
+              readOnly
+              style={[
+                styles.input,
+                {
+                  backgroundColor: theme === 'dark' ? '#232323' : '#FFF',
+                  color: colors.text,
+                  borderColor: error && colors.error,
+                  borderWidth: error ? 1 : 0
+                  // shadowColor: theme === 'dark' ? colors.primary : undefined,
+                },
+                boxShadow,
+                inputPadding,
+                borderRadius
+              ]}
+              placeholderTextColor={colors.textDarker}
+              placeholder={placeholder}
+            />
+        }
+
         {/* <Icon
           name="calendar"
           size={30}

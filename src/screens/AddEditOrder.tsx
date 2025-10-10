@@ -41,11 +41,16 @@ const AddEditOrder = ({ navigation }: any) => {
   const [status, setStatus] = useState<'LOADING' | 'SUCCESS' | 'ERROR' | 'SUBMIT'>('SUCCESS');
   const [orderForm, setOrderForm] = useState<OrderForm[]>([]);
 
-  // ✅ Use generic type for dynamic keys
+  const defaultValues = orderForm?.reduce((acc, field) => {
+    acc[field.key] = field.value || '';
+    return acc;
+  }, {} as Record<string, string>);
+
   const { control, handleSubmit, setValue, reset } = useForm<FieldValues>({
     mode: 'onChange',
-    defaultValues: {}
+    defaultValues
   });
+
 
   useEffect(() => {
     if (orderForm.length > 0) {
@@ -151,16 +156,6 @@ const AddEditOrder = ({ navigation }: any) => {
 
   const submitForm = async () => {
     const isValidNumber = (val: any) => /^\d+$/.test(val) && Number(val) > 0;
-    const hasAtLeastOne = orderForm.some(order => isValidNumber(order.value));
-    if (!hasAtLeastOne) {
-      Toast.show({
-        type: 'error',
-        text1: 'Validation',
-        text2: 'Please enter a valid key quantity.',
-      });
-      setStatus('SUCCESS');
-      return;
-    }
     try {
       setStatus('SUBMIT');
       const keys = orderForm
@@ -211,11 +206,9 @@ const AddEditOrder = ({ navigation }: any) => {
         index={index}
         control={control}
         rules={{
-          required: field.required ? `${field.label} is required` : false,
-          validate: (val: any) => {
-            if (val && !/^\d+$/.test(val)) return 'Only numbers allowed';
-            return true;
-          },
+          required: `${field.label} is required`,
+          validate: (val: string) =>
+            val && !/^\d+$/.test(val) ? 'Only numbers allowed' : true
         }}
         name={field.key}
       />
@@ -237,9 +230,7 @@ const AddEditOrder = ({ navigation }: any) => {
       />
       <View style={styles.contentContainer}>
         {(status === 'LOADING' || status === 'SUBMIT') && (
-          <Overlay>
-            <Loader center />
-          </Overlay>
+          <Loader center />
         )}
         {(status === 'SUCCESS' || status === 'SUBMIT') && (
           <ScrollView showsVerticalScrollIndicator={false}>
