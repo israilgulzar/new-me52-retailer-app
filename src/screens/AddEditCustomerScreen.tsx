@@ -1,7 +1,7 @@
+// AddEditCustomerScreen.tsx
 import React, {
 	useCallback,
 	useEffect,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -10,14 +10,9 @@ import {
 	View,
 	StyleSheet,
 	ScrollView,
-	Alert,
+	Text,
 } from 'react-native';
-import Button from '../components/Button';
-import { useTheme } from '../theme/ThemeProvider';
-import Forms from '../components/Forms';
 import { useAuth } from '../context/AuthContext';
-
-
 import {
 	addCustomer,
 	editCustomer,
@@ -29,30 +24,24 @@ import { getkeys, keyLink } from '../services/keys';
 import { addDevice, editDevice } from '../services/devices';
 import { addLoan, editLoan } from '../services/loan';
 
-
-import { IMAGE_BASE_URL } from "../environment"
-import { CountryCode, parsePhoneNumberFromString, } from 'libphonenumber-js';
+import { IMAGE_BASE_URL } from "../environment";
+import { CountryCode, parsePhoneNumberFromString } from 'libphonenumber-js';
 import { SCREENS } from '../navigation/screens';
 import Loader from '../components/Loader';
 import Overlay from '../components/Overlat';
-import {
-	getCountryCodeFromCallCode,
-} from '../utility/helpers';
 import Footer from '../components/Footer';
-import {
-	NavigationProp,
-	useFocusEffect,
-	useIsFocused,
-} from '@react-navigation/native';
-import { onError } from '../utility/Toaster';
-import { getCallingCode } from 'react-native-country-picker-modal';
-import { USER_FORM_STRUCTURE } from './userData';
 import CRootContainer from '../components/CRootContainer';
 import CHeader from '../components/CHeader';
+import Toast from 'react-native-toast-message';
 import { commonStyle } from '../theme';
 import { getHeight } from '../common/constants';
-import Toast from 'react-native-toast-message';
 import { useForm } from 'react-hook-form';
+import { onError } from '../utility/Toaster';
+import { getCountryCodeFromCallCode } from '../utility/helpers';
+import { getCallingCode } from 'react-native-country-picker-modal';
+import { USER_FORM_STRUCTURE } from './userData';
+
+// Field components (as in your project)
 import Input from '../components/Input';
 import TextArea from '../components/TextArea';
 import PhoneNumber from '../components/PhoneNumber';
@@ -64,64 +53,88 @@ import SignPad from '../components/SignPad';
 import OrderInput from '../components/OrderInput';
 import TimePicker from '../components/Time';
 import Datepicker from '../components/Date';
+import UploadPicker from '../components/UploadPicker';
+import CountryPicker from '../components/CountryPicker';
+import StatePicker from '../components/StatePicker';
+import CityPicker from '../components/CityPicker';
+import Button from '../components/Button';
+import Forms from '../components/Forms';
 
 
 type STATUS = 'LOADING' | 'SUCCESS' | 'ERROR';
 
-const AddCustomerScreen = ({
-	route,
-	navigation,
-}: {
-	route: any;
-	navigation: NavigationProp<any>;
-}) => {
-
-	// State to control hiding fields below keytype
-	const [hideFieldsBelowKeyType, setHideFieldsBelowKeyType] = useState(false);
-
+const AddCustomerScreen = ({ route, navigation }: any) => {
 	const { users } = useAuth();
-	const isFocused = useIsFocused();
 
 	const customerId = route.params?.customerId ?? "";
 
+	// states
 	const [status, setStatus] = useState<STATUS>('LOADING');
 	const [deviceId, setDeviceId] = useState('');
 	const [loanId, setLoanId] = useState('');
-	const [errors, setErrors] = useState<any>('');
+	const [errors, setErrors] = useState<any>({});
 	const [isEdit, setIsEdit] = useState<boolean>(false);
 	const [originalFormStructure, setOriginalFormStructure] = useState<any>([]);
 	const [formFieldStructure, setFormFieldStructure] = useState<any>([]);
+	const [hideFieldsBelowKeyType, setHideFieldsBelowKeyType] = useState(false);
+
+	const addUserId = useRef<any>(null);
 
 	const { control, setValue, trigger } = useForm({ mode: 'onChange' });
 
-	// identical update logic
-	const updateField = useCallback((field:any, value: any) => {
-	  try {
-		setValue(field.key, value, { shouldValidate: true, shouldDirty: true });
-	  } catch {}
-	  setFormFieldStructure((prev: any) => {
-		const updated = [...prev];
-		const index = updated.findIndex(item => item.key === field.key);
-		if (index !== -1) {
-		  updated[index] = { ...updated[index], value };
-		} else {
-		  updated.forEach(p => {
-			if (p.component) {
-			  const ci = p.component.findIndex((c: { key: any; }) => c.key === field.key);
-			  if (ci !== -1) p.component[ci] = { ...p.component[ci], value };
-			}
-		  });
-		}
-		return updated;
-	  });
-	  trigger(field.key).catch(() => {});
-	}, [setValue, trigger]);
-
-
-	const addUserId = useRef(null);
-
 	let formStructure: any = [];
 
+	// ---------- Helper: reset form structure ----------
+	const resetFormStructure = (form: any[]) => {
+		return form.map((field) => {
+			const newField = { ...field };
+			if (Array.isArray(newField.component)) {
+				newField.component = resetFormStructure(newField.component);
+			}
+			if (newField.hasOwnProperty('value')) {
+				if (typeof newField.value === 'object' && newField.value !== null) {
+					newField.value = Object.fromEntries(
+						Object.keys(newField.value).map((key) => [
+							key,
+							key === 'countryCode' || key === 'alternateCountryCode' ? 'IN' : '',
+						])
+					);
+				} else {
+					if (newField.type === 'date' && newField.key === 'emiDate') {
+						newField.value = Math.floor(Date.now() / 1000);
+					} else {
+						newField.value = '';
+					}
+				}
+			}
+			return newField;
+		});
+	};
+
+	// ---------- updateField (used elsewhere in file) ----------
+	const updateField = useCallback((field: any, value: any) => {
+		try {
+			setValue(field.key, value, { shouldValidate: true, shouldDirty: true });
+		} catch { }
+		setFormFieldStructure((prev: any) => {
+			const updated = [...prev];
+			const index = updated.findIndex((item) => item.key === field.key);
+			if (index !== -1) {
+				updated[index] = { ...updated[index], value };
+			} else {
+				updated.forEach((p) => {
+					if (p.component) {
+						const ci = p.component.findIndex((c: { key: any }) => c.key === field.key);
+						if (ci !== -1) p.component[ci] = { ...p.component[ci], value };
+					}
+				});
+			}
+			return updated;
+		});
+		trigger(field.key).catch(() => { });
+	}, [setValue, trigger]);
+
+	// ---------- some static mapping arrays used earlier ----------
 	const users_data = [
 		{ fekey: 'name', bekey: 'name' },
 		{ fekey: 'email', bekey: 'email' },
@@ -156,7 +169,7 @@ const AddCustomerScreen = ({
 		{ fekey: 'loanByCompany', bekey: 'ledger' },
 	];
 
-	// Central list of fields that should be hidden when hideFieldsBelowKeyType is true
+	// ---------- getHiddenFields ----------
 	const getHiddenFields = (): string[] => [
 		'loanByCompany',
 		'emiDate',
@@ -170,63 +183,12 @@ const AddCustomerScreen = ({
 		'signature',
 	];
 
-	useFocusEffect(
-		useCallback(() => {
-			let mounted = true;
-			console.log("LOADING CUSTOMER ADD EDIT PAGE", customerId);
-			setIsEdit(!!customerId);
-			if (customerId) {
-				console.log("EDIT FORM");
-				loadCustomerDetails(customerId, mounted);
-			} else {
-				console.log("FRESH FORM");
-				const formData = resetFormStructure(USER_FORM_STRUCTURE);
-				setFormFieldStructure(formData);
-				// Store original structure for potential field hiding
-				setOriginalFormStructure(formData);
-				setStatus('SUCCESS')
-			}
-		}, [customerId])
-	);
-
-	const resetFormStructure = (form: any[]) => {
-		return form.map((field) => {
-			const newField = { ...field };
-
-			// If field has a nested component array → reset recursively
-			if (Array.isArray(newField.component)) {
-				newField.component = resetFormStructure(newField.component);
-			}
-
-			// If the field has a 'value' property → reset it
-			if (newField.hasOwnProperty("value")) {
-				if (typeof newField.value === "object" && newField.value !== null) {
-					// Reset nested object values to empty string
-					newField.value = Object.fromEntries(
-						Object.keys(newField.value).map((key) => [key, key === 'countryCode' || key === 'alternateCountryCode' ? "IN" : ""])
-					);
-				} else {
-					// Preserve sensible defaults for certain types/keys
-					if (newField.type === 'date' && newField.key === 'emiDate') {
-						// default to today (epoch seconds)
-						newField.value = Math.floor(Date.now() / 1000);
-					} else {
-						newField.value = "";
-					}
-				}
-			}
-
-			return newField;
-		});
-	}
-
+	// ---------- fetch key types ----------
 	const loadKeyType = async (key: any) => {
 		try {
-
 			const response = await getkeys(users.token);
 			const keyData = response.data;
-
-			const items = [];
+			const items: any[] = [];
 			for (let keyD of keyData) {
 				if (keyD.count !== 0) {
 					const obj = {
@@ -234,46 +196,25 @@ const AddCustomerScreen = ({
 						label: `${keyD.keytype.name} (${keyD.count})`,
 						key: keyD._id,
 						metadata: [
-							{
-								name: 'Location Tracking',
-								key: 'location_tracking',
-								active: keyD.keytype.location_tracking,
-							},
-							{
-								name: 'SIM Tracking',
-								key: 'sim_tracking',
-								active: keyD.keytype.sim_tracking
-							},
-							{
-								name: 'Image Notification',
-								key: 'image_notification',
-								active: keyD.keytype.image_notification,
-							},
-							{
-								name: 'Phone Block',
-								key: 'phone_block',
-								active: keyD.keytype.phone_block,
-							},
-							{
-								name: 'Video Notification',
-								key: 'video_notification',
-								active: keyD.keytype.video_notification,
-							},
+							{ name: 'Location Tracking', key: 'location_tracking', active: keyD.keytype.location_tracking },
+							{ name: 'SIM Tracking', key: 'sim_tracking', active: keyD.keytype.sim_tracking },
+							{ name: 'Image Notification', key: 'image_notification', active: keyD.keytype.image_notification },
+							{ name: 'Phone Block', key: 'phone_block', active: keyD.keytype.phone_block },
+							{ name: 'Video Notification', key: 'video_notification', active: keyD.keytype.video_notification },
 						],
 					};
 					items.push(obj);
 				}
 			}
-			const filterData = items?.filter(itm => itm.key == key)
-			return filterData
-
+			const filterData = items?.filter((itm) => itm.key == key);
+			return filterData;
 		} catch (error) {
-			Toast.show({ type: 'error', text1: (error as any)?.message ?? 'Something went to wrong', })
-			console.log('ME52RETAILERTESTING', 'Error while loading keytypes ', error);
-
+			Toast.show({ type: 'error', text1: (error as any)?.message ?? 'Something went to wrong' });
+			console.log('Error while loading keytypes', error);
 		}
 	};
 
+	// ---------- loadCustomerDetails ----------
 	const loadCustomerDetails = async (customerId: any, mounted: boolean) => {
 		if (mounted) {
 			try {
@@ -486,21 +427,23 @@ const AddCustomerScreen = ({
 		}
 	};
 
+	// ---------- useFocusEffect to load or reset ----------
+	useEffect(() => {
+		let mounted = true;
+		setIsEdit(!!customerId);
+		if (customerId) {
+			loadCustomerDetails(customerId, mounted);
+		} else {
+			const formData = resetFormStructure(USER_FORM_STRUCTURE);
+			setFormFieldStructure(formData);
+			setOriginalFormStructure(formData);
+			setStatus('SUCCESS');
+		}
+		return () => { mounted = false; };
+	}, [customerId, ]);
+
+	// ---------- checkError (field-level validation used in submit flow) ----------
 	const checkError = (formField: any, form: any, err: boolean) => {
-
-		console.log(" ");
-		const BEFORE = Boolean(err) ? "ERROR HAI" : "NAHI HAI";
-
-		if (Boolean(err)) {
-			console.log("BEFORE ", BEFORE);
-			console.log("BEFORE ", formField.name);
-		}
-
-		if (Boolean(err)) {
-			console.log("BEFORE ", BEFORE);
-			console.log("BEFORE ", formField.name);
-		}
-
 		if (
 			formField.required &&
 			formField.type !== 'file' &&
@@ -508,10 +451,7 @@ const AddCustomerScreen = ({
 			formField.key !== 'termsAndConditions'
 		) {
 			if (!form[formField.key as keyof typeof form]) {
-				setErrors((prev: any) => ({
-					...prev,
-					[formField.key]: `${formField.label} is required`,
-				}));
+				setErrors((prev: any) => ({ ...prev, [formField.key]: `${formField.label} is required` }));
 				err = true;
 			} else {
 				setErrors((prev: any) => ({ ...prev, [formField.key]: null }));
@@ -519,84 +459,37 @@ const AddCustomerScreen = ({
 		}
 
 		if (['phoneNumber', 'alternateNumber'].includes(formField.key)) {
-			// Get the current country code from the form structure, not from the form object
-			const currentPhoneField = formFieldStructure.find(
-				(field: any) => field.key === formField.key
-			);
-
-			let countryCode: CountryCode;
-			let phoneValue: string;
-
-			if (formField.key === 'phoneNumber') {
-				// For phone number, get country code from the current field's value object
-				countryCode = currentPhoneField?.value?.countryCode || 'IN';
-				phoneValue = form[formField.key as keyof typeof form] as string;
-			} else {
-				// For alternate number, get alternate country code from the current field's value object
-				countryCode = currentPhoneField?.value?.alternateCountryCode || 'IN';
-				phoneValue = form[formField.key as keyof typeof form] as string;
-			}
-
-			// Ensure countryCode is valid
-			if (!countryCode || typeof countryCode !== 'string' || countryCode.length !== 2) {
-				countryCode = 'IN';
-			}
-
-			const parseNumber = parsePhoneNumberFromString(
-				phoneValue,
-				countryCode,
-			);
-
+			const currentPhoneField = formFieldStructure.find((field: any) => field.key === formField.key);
+			let countryCode: CountryCode = (formField.key === 'phoneNumber' ? currentPhoneField?.value?.countryCode : currentPhoneField?.value?.alternateCountryCode) || 'IN';
+			if (!countryCode || typeof countryCode !== 'string' || countryCode.length !== 2) countryCode = 'IN';
+			const phoneValue = form[formField.key as keyof typeof form] as string;
+			const parseNumber = parsePhoneNumberFromString(phoneValue, countryCode as any);
 			let invalid = false;
 			if (formField.required && !phoneValue) {
-				setErrors((prev: any) => ({
-					...prev,
-					[formField.key]: `${formField.label} is required`,
-				}));
+				setErrors((prev: any) => ({ ...prev, [formField.key]: `${formField.label} is required` }));
 				err = true;
 				invalid = true;
 			} else if (phoneValue) {
-				// Prefer library validation when available
 				const isLibValid = Boolean(parseNumber && parseNumber.isValid());
-
-				// Fallback: accept generic numbers with 6-15 digits (E.164 range)
 				const digitOnly = String(phoneValue).replace(/[^0-9]/g, '');
 				const isFallbackValid = digitOnly.length >= 6 && digitOnly.length <= 15;
-
 				if (isLibValid || isFallbackValid) {
 					setErrors((prev: any) => ({ ...prev, [formField.key]: null }));
 				} else {
-					setErrors((prev: any) => ({
-						...prev,
-						[formField.key]: `${formField.label} is not valid`,
-					}));
+					setErrors((prev: any) => ({ ...prev, [formField.key]: `${formField.label} is not valid` }));
 					err = true;
 					invalid = true;
 				}
 			}
-
-			const phoneNumberField = formFieldStructure.find(
-				(formField: any) => formField.key === 'phoneNumber',
-			);
-			const alternatephoneNumberField = formFieldStructure.find(
-				(formField: any) => formField.key === 'alternateNumber',
-			);
-
+			const phoneNumberField = formFieldStructure.find((f: any) => f.key === 'phoneNumber');
+			const alternatephoneNumberField = formFieldStructure.find((f: any) => f.key === 'alternateNumber');
 			if (phoneNumberField && alternatephoneNumberField && !invalid) {
 				const phoneNumberCountryCode = (phoneNumberField.value as any)?.countryCode || 'IN';
 				const phoneNumber = (phoneNumberField.value as any)?.phoneNumber || '';
 				const alternateCountryCode = (alternatephoneNumberField.value as any)?.alternateCountryCode || 'IN';
 				const alertnatePhoneNumber = (alternatephoneNumberField.value as any)?.alternateNumber || '';
-
-				if (
-					phoneNumberCountryCode === alternateCountryCode &&
-					phoneNumber && alertnatePhoneNumber &&
-					phoneNumber === alertnatePhoneNumber
-				) {
-					setErrors((prev: any) => ({
-						...prev,
-						alternateNumber: `Phone number and Alternate number cannot be same`,
-					}));
+				if (phoneNumberCountryCode === alternateCountryCode && phoneNumber && alertnatePhoneNumber && phoneNumber === alertnatePhoneNumber) {
+					setErrors((prev: any) => ({ ...prev, alternateNumber: `Phone number and Alternate number cannot be same` }));
 					err = true;
 				} else {
 					setErrors((prev: any) => ({ ...prev, alternateNumber: null }));
@@ -606,11 +499,8 @@ const AddCustomerScreen = ({
 
 		if (formField.key === 'pincode') {
 			const pincodeValue = form['pincode'];
-			if (pincodeValue.length !== 6) {
-				setErrors((prev: any) => ({
-					...prev,
-					pincode: `${formField.label} should of 6 digits`,
-				}));
+			if (pincodeValue && pincodeValue.length !== 6) {
+				setErrors((prev: any) => ({ ...prev, pincode: `${formField.label} should of 6 digits` }));
 				err = true;
 			} else {
 				setErrors((prev: any) => ({ ...prev, pincode: null }));
@@ -620,18 +510,11 @@ const AddCustomerScreen = ({
 		if (formField.key === 'email') {
 			const emailValue = form['email'];
 			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 			if (formField.required && !emailValue) {
-				setErrors((prev: any) => ({
-					...prev,
-					email: `${formField.label} is required`,
-				}));
+				setErrors((prev: any) => ({ ...prev, email: `${formField.label} is required` }));
 				err = true;
 			} else if (emailValue && !emailRegex.test(emailValue)) {
-				setErrors((prev: any) => ({
-					...prev,
-					email: `${formField.label} is not valid`,
-				}));
+				setErrors((prev: any) => ({ ...prev, email: `${formField.label} is not valid` }));
 				err = true;
 			} else {
 				setErrors((prev: any) => ({ ...prev, email: null }));
@@ -640,94 +523,23 @@ const AddCustomerScreen = ({
 
 		if (
 			formField.required &&
-			(formField.type === 'file' ||
-				formField.key === 'termsAndConditions' ||
-				formField.type === 'signaturePad')
+			(formField.type === 'file' || formField.key === 'termsAndConditions' || formField.type === 'signaturePad')
 		) {
 			if (!form[formField.key as keyof typeof form]) {
-				setErrors((prev: any) => ({
-					...prev,
-					[formField.key]: `${formField.label} is required`,
-				}));
+				setErrors((prev: any) => ({ ...prev, [formField.key]: `${formField.label} is required` }));
 				err = true;
 			} else {
 				setErrors((prev: any) => ({ ...prev, [formField.key]: null }));
 			}
 		}
 
-		const AFTER = Boolean(err) ? "ERROR HAI" : "NAHI HAI";
-		if (Boolean(err)) {
-			console.log("AFETR ", AFTER, formField.name);
-		}
-
-		if (Boolean(err)) {
-			console.log("AFETR ", AFTER, formField.name);
-		}
-
-		return err
+		return err;
 	};
 
-	const addCustomers = async () => {
-		try {
-			let form = buildFormDataFromStructure(formFieldStructure);
-
-			let hasError = validateFormFields(formFieldStructure, form);
-			if (hasError) return;
-
-			hasError = validateFormFields(formStructure, form);
-			if (hasError) return;
-
-			setStatus('LOADING');
-
-			await handleImageUploads(form);
-			console.log('====================================');
-			console.log("users_data", users_data);
-			console.log('====================================');
-
-			const addUserData = await prepareUserData(form, users_data);
-			console.log("prepareUserData", addUserData);
-			const customerAdded = await createOrUpdateCustomer(addUserData);
-			console.log("createOrUpdateCustomer", customerAdded);
-			const custId = isEdit ? customerId : customerAdded?.data?._id;
-			addUserId.current = custId;
-
-			const updateKeyRes = isEdit ? null : await linkCustomerKey(custId, form['keytype']);
-			console.log("linkCustomerKey", updateKeyRes);
-
-			const addDeviceData = prepareDeviceData(form, device_data, updateKeyRes?.data?.keyId, custId);
-			console.log("prepareDeviceData", addDeviceData, deviceId);
-
-			const deviceAdded = await createOrUpdateDevice(addDeviceData);
-			console.log("createOrUpdateDevice", deviceAdded);
-
-			const devId = isEdit ? deviceId : deviceAdded?.data?._id;
-
-			const addLoanData = prepareLoanData(form, loan_data, devId);
-			console.log("prepareLoanData", addLoanData);
-
-			const reposnev = await createOrUpdateLoan(addLoanData);
-			console.log("createOrUpdateLoan", reposnev);
-
-			setStatus('SUCCESS');
-			Toast.show({ type: 'success', text1: `Customer ${isEdit ? 'Updated' : 'Added'} Successfully` })
-			navigation.navigate(SCREENS.Customer, {
-				screen: SCREENS.ListCustomer,
-			})
-
-		} catch (error: any) {
-			setStatus('ERROR');
-			Toast.show({ type: 'error', text1: (error as any)?.message ?? 'Something went to wrong', })
-			console.log(error);
-			handleAddCustomerError(error);
-		}
-	};
-
-	// Build the form object from the field structure
+	// ---------- buildFormDataFromStructure ----------
 	function buildFormDataFromStructure(fieldStructure: any[]) {
 		let form: any = {};
-
 		const hidden = hideFieldsBelowKeyType ? new Set(getHiddenFields()) : null;
-
 		for (let field of fieldStructure) {
 			if (!field.component && hidden && hidden.has(field.key)) continue;
 			if (field.key === 'phoneNumber' && typeof field.value === 'object') {
@@ -752,43 +564,28 @@ const AddCustomerScreen = ({
 		return form;
 	}
 
-	// Validate form fields and return true if errors exist
+	// ---------- validateFormFields ----------
 	function validateFormFields(fieldStructure: any[], form: any) {
 		let err = false;
-
-		console.log("A validateFormFields", fieldStructure, form);
-		console.log("V validateFormFields", form);
-
 		const hidden = hideFieldsBelowKeyType ? new Set(getHiddenFields()) : null;
 		const shouldSkip = (key?: string) => hidden && key ? hidden.has(key) : false;
 
 		for (let field of fieldStructure) {
-			console.log('====================================');
-			console.log("FIELD", field);
-			console.log('====================================');
-			// Skip hidden direct fields
 			if (!field.component && shouldSkip(field.key)) continue;
 			if (field.component) {
 				for (let comp of field.component) {
-					// Skip hidden nested fields
 					if (shouldSkip(comp.key)) continue;
 					err = checkError(comp, form, err);
 				}
 			}
 			err = checkError(field, form, err);
 		}
-
-		console.log("B validateFormFields", err);
-
 		return err;
 	}
 
-	// Uploads images and updates form fields
+	// ---------- handleImageUploads ----------
 	async function handleImageUploads(form: any) {
-
 		try {
-
-			// If fields are hidden, do not upload corresponding files and unset any pre-filled values
 			if (hideFieldsBelowKeyType) {
 				const hidden = new Set(getHiddenFields());
 				if (hidden.has('idProof1Photo')) delete form['idProof1Photo'];
@@ -800,22 +597,24 @@ const AddCustomerScreen = ({
 			if (isImageBlob(form['idProof1Photo'])) {
 				const folderName = 'idProofOne';
 				const res = await uploadCustomerProof({ folderName, file: form['idProof1Photo'] as unknown as File }, users.token);
-				if (res) form['loan.id_proof'] = IMAGE_BASE_URL + res.data;
+				console.log(res.data , "--->");
+				console.log(IMAGE_BASE_URL , "--->1");
+				if (res) form['loan.id_proof'] = res.data;
 			}
 
 			if (isImageBlob(form['idProof2Photo'])) {
 				const folderName = 'idProofTwo';
 				const res = await uploadCustomerProof({ folderName, file: form['idProof2Photo'] as unknown as File }, users.token);
-				if (res) form['loan.alt_id_proof'] = IMAGE_BASE_URL + res.data;
+				if (res) form['loan.alt_id_proof'] = res.data;
 			}
 
 			if (isImageBlob(form['customerPhoto'])) {
 				const folderName = 'signature';
 				const res = await uploadCustomerProof({ folderName, file: form['customerPhoto'] as unknown as File }, users.token);
-				if (res) form['loan.photo'] = IMAGE_BASE_URL + res.data;
+				if (res) form['loan.photo'] = res.data;
 			}
 
-			if (form['signature']?.includes('data:image')) {
+			if (form['signature']?.includes && form['signature']?.includes('data:image')) {
 				const folderName = 'signature';
 				const signatureFile = {
 					uri: form['signature'],
@@ -823,82 +622,58 @@ const AddCustomerScreen = ({
 					type: 'image/png',
 				};
 				const res = await uploadCustomerProof({ folderName, file: signatureFile as unknown as File }, users.token);
-				if (res) form['loan.signature'] = IMAGE_BASE_URL + res.data;
+				if (res) form['loan.signature'] = res.data;
 			}
-
 		} catch (err) {
-			throw err
+			throw err;
 		}
 	}
 
-	// Prepare user object to send to API
-	async function prepareUserData(form: any, users_data: any[]) {
-
+	// ---------- prepareUserData ----------
+	async function prepareUserData(form: any, users_data_arr: any[]) {
 		const addUserData: Record<string, any> = {};
-
-		for (let u of users_data) {
+		for (let u of users_data_arr) {
 			if (['countryCode', 'alternateCountryCode'].includes(u['fekey'])) {
 				addUserData[u['bekey']] = await getCallingCode(form[u['fekey']]);
-			} else if ((u['fekey'] === 'city' && form[u['fekey']] === 'no_city') ||
-				(u['fekey'] === 'state' && form[u['fekey']] === 'no_state')) {
+			} else if ((u['fekey'] === 'city' && form[u['fekey']] === 'no_city') || (u['fekey'] === 'state' && form[u['fekey']] === 'no_state')) {
 				addUserData[u['bekey']] = '';
 			} else {
 				addUserData[u['bekey']] = form[u['fekey']];
 			}
 		}
-
-		if (customerId && isEdit)
-			addUserData['_id'] = customerId;
-
+		if (customerId && isEdit) addUserData['_id'] = customerId;
 		addUserData['parent'] = users.id;
 		addUserData['type'] = 'customer';
 		return addUserData;
-
 	}
 
+	// ---------- APIs wrappers ----------
 	async function createOrUpdateCustomer(data: any) {
-		return isEdit
-			? await editCustomer({ data }, users.token)
-			: await addCustomer({ data }, users.token);
+		return isEdit ? await editCustomer({ data }, users.token) : await addCustomer({ data }, users.token);
 	}
-
-	async function linkCustomerKey(customerId: string, keytype: string) {
-		return await keyLink({ user: customerId, keytype }, users.token);
+	async function linkCustomerKey(customerIdParam: string, keytype: string) {
+		return await keyLink({ user: customerIdParam, keytype }, users.token);
 	}
-
-	function prepareDeviceData(form: any, device_data: any[], keyId: string, customerId: string) {
+	function prepareDeviceData(form: any, device_data_arr: any[], keyId: string, customerIdParam: string) {
 		const device: Record<string, any> = {};
-
-		for (let d of device_data) {
+		for (let d of device_data_arr) {
 			device[d['bekey']] = form[d['fekey']];
 		}
-
-		console.log("prepareDeviceData", isEdit, deviceId);
-
-
-		if (deviceId && isEdit)
-			device['_id'] = deviceId;
-
-		if (keyId && !isEdit)
-			device['key'] = keyId;
-		device['user'] = customerId;
+		if (deviceId && isEdit) device['_id'] = deviceId;
+		if (keyId && !isEdit) device['key'] = keyId;
+		device['user'] = customerIdParam;
 		return device;
 	}
-
 	async function createOrUpdateDevice(data: any) {
-		return isEdit
-			? await editDevice({ data }, users.token)
-			: await addDevice({ data }, users.token);
-	}
+		return isEdit ? await editDevice({ data }, users.token) : await addDevice({ data }, users.token)
+	};
 
-	function prepareLoanData(form: any, loan_data: any[], deviceId: string) {
+	function prepareLoanData(form: any, loan_data_arr: any[], deviceIdParam: string) {
 		const loan: Record<string, any> = {};
 		const hidden = hideFieldsBelowKeyType ? new Set(getHiddenFields()) : null;
-		for (let l of loan_data) {
-			// Skip hidden fields when building loan payload
+		for (let l of loan_data_arr) {
 			if (hidden && hidden.has(l['fekey'].replace('loan.', ''))) continue;
 			if (['emi_start_date', 'loan_date'].includes(l['bekey'])) {
-				// If emi date missing, fallback to today
 				const epoch = form[l['fekey']] ? form[l['fekey']] : Math.floor(Date.now() / 1000);
 				const dateObj = new Date(epoch * 1000);
 				loan[l['bekey']] = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
@@ -906,48 +681,82 @@ const AddCustomerScreen = ({
 				loan[l['bekey']] = form[l['fekey']];
 			}
 		}
-
-		if (loanId && isEdit)
-			loan['_id'] = loanId;
-
-		loan['device'] = deviceId;
-		// Only compute loan price if both inputs are present (not hidden)
+		if (loanId && isEdit) loan['_id'] = loanId;
+		loan['device'] = deviceIdParam;
 		if (loan['actual_price'] != null && loan['down_payment'] != null) {
 			loan['loan_price'] = Number(loan['actual_price']) - Number(loan['down_payment']);
 		}
 		return loan;
 	}
-
 	async function createOrUpdateLoan(data: any) {
-		return isEdit
-			? await editLoan({ data }, users.token)
-			: await addLoan({ data }, users.token);
+		return isEdit ? await editLoan({ data }, users.token) : await addLoan({ data }, users.token);
 	}
 
+	// ---------- handleAddCustomerError ----------
 	async function handleAddCustomerError(error: any) {
-
-		console.log('Error while submitting form', error.response.data, addUserId);
+		console.log('Error while submitting form', error.response?.data, addUserId.current);
 		setStatus('ERROR');
 
 		const message = error.response?.data?.message || 'Some error occurred. Please try again';
 		onError('Customer', message);
 
 		if (addUserId.current && !isEdit) {
-			await deleteCustomerApi({ _id: addUserId.current }, users.token);
+			try {
+				await deleteCustomerApi({ _id: addUserId.current }, users.token);
+			} catch (e) {
+				// best-effort cleanup
+			}
 			addUserId.current = null;
 		}
-
 	}
 
+	// ---------- isImageBlob ----------
 	const isImageBlob = (file: any) => {
-		// Check if it's a Blob or File object
 		const isBlob = typeof file === 'object' && file?.uri;
 		return isBlob;
+	};
 
+	// ---------- handle submit ----------
+	const addCustomers = async () => {
+		try {
+			let form = buildFormDataFromStructure(formFieldStructure);
+			let hasError = validateFormFields(formFieldStructure, form);
+			if (hasError) return;
+			hasError = validateFormFields(formFieldStructure, form);
+			if (hasError) return;
+
+			setStatus('LOADING');
+
+			await handleImageUploads(form);
+
+			const addUserData = await prepareUserData(form, users_data);
+			const customerAdded = await createOrUpdateCustomer(addUserData);
+			const custId = isEdit ? customerId : customerAdded?.data?._id;
+			addUserId.current = custId;
+
+			const updateKeyRes = isEdit ? null : await linkCustomerKey(custId, form['keytype']);
+
+			const addDeviceData = prepareDeviceData(form, device_data, updateKeyRes?.data?.keyId, custId);
+			const deviceAdded = await createOrUpdateDevice(addDeviceData);
+			const devId = isEdit ? deviceId : deviceAdded?.data?._id;
+
+			const addLoanData = prepareLoanData(form, loan_data, devId);
+			const reposnev = await createOrUpdateLoan(addLoanData);
+
+			setStatus('SUCCESS');
+			Toast.show({ type: 'success', text1: `Customer ${isEdit ? 'Updated' : 'Added'} Successfully` });
+			navigation.navigate(SCREENS.Customer, { screen: SCREENS.ListCustomer });
+		} catch (error: any) {
+			setStatus('ERROR');
+			Toast.show({ type: 'error', text1: (error as any)?.message ?? 'Something went to wrong' });
+			console.log(error);
+			await handleAddCustomerError(error);
+		}
 	};
 
 	const handleSubmit = async () => await addCustomers();
 
+	// ---------- updateFormData (to respond to keytype changes etc.) ----------
 	const updateFormData = (data: any) => {
 
 		const keyTypeField = Array.isArray(data)
@@ -1111,201 +920,589 @@ const AddCustomerScreen = ({
 		}
 	};
 
+	// // ---------- onChangeText that mirrors Forms.tsx behavior ----------
+	const onChangeText = (
+		event: any,
+		field: any,
+		id: string,
+		key: string | null = null,
+		parentKey?: string,
+		idx?: number,
+	) => {
+		// update errors if necessary (Forms.tsx used isCheckError prop)
+		// Here we rely on existing checkErrors behavior when needed
+		// We'll update formFieldStructure the same way Forms.tsx did
+
+		setFormFieldStructure((prev: any) => {
+			const index = prev.findIndex((item: any) => item.key === id);
+			if (index === -1) {
+				const parentIndex = prev.findIndex((compA: any) => compA.key === parentKey);
+				if (parentIndex !== -1) {
+					const clonePrev = [...prev];
+					const parentData = clonePrev[parentIndex];
+					if (parentData.component) {
+						const childIndex = parentData.component.findIndex((compC: any) => compC.key === id);
+						if (childIndex !== -1) {
+							setFormFieldStructure((p: any) => {
+								const newClone = [...p];
+								const parentClone = { ...newClone[parentIndex] };
+								const comps = [...parentClone.component];
+								let childData = { ...comps[childIndex] };
+								childData = { ...childData, value: event };
+								comps[childIndex] = childData;
+								parentClone.component = comps;
+								newClone[parentIndex] = parentClone;
+								// notify parent if keytype changed
+								if (id === 'keytype') updateFormData(newClone);
+								return newClone;
+							});
+							return prev;
+						}
+					}
+				}
+				return prev;
+			}
+			const updated = [...prev];
+			let updatedIndex = updated[index];
+			if (updatedIndex.value && typeof updatedIndex.value === 'object' && !Array.isArray(updatedIndex.value)) {
+				if (event) {
+					const val = { ...updatedIndex.value, [key as string]: event };
+					updatedIndex = { ...updatedIndex, value: val };
+				} else {
+					updatedIndex = { ...updatedIndex, value: event };
+				}
+			} else if (updatedIndex.value && updatedIndex.no_of_frames && Array.isArray(updatedIndex.value)) {
+				if (event) {
+					updatedIndex = { ...updatedIndex, value: [event, ...updatedIndex.value] };
+					setErrors((prevErr: any) => ({ ...prevErr, [field.key]: null }));
+				} else {
+					const tempValue = [...updatedIndex.value];
+					tempValue.splice(idx as number, 1);
+					if (tempValue.length === 0) {
+						setErrors((prevErr: any) => ({ ...prevErr, [field.key]: `${field.label} is required` }));
+					}
+					updatedIndex = { ...updatedIndex, value: [...tempValue] };
+				}
+			} else {
+				updatedIndex = { ...updatedIndex, value: event };
+			}
+			updated[index] = { ...updatedIndex };
+			// notify parent if keytype changed
+			if (id === 'keytype') {
+				updateFormData(updated);
+			}
+			return updated;
+		});
+	};
+
+	// ---------- renderFields: inline rendering copied from Forms.tsx logic ----------
 	const renderFields = useMemo(() => {
-		return formFieldStructure?.map((field: any, index: any) => {
-			switch (field.type) {
+		const renderFormField = (formField: any, parentKey?: string) => {
+
+			console.log(formField, "formfieled--->");
+			
+			switch (formField.type) {
 				case 'text':
 				case 'number':
 					return (
 						<Input
-							key={field.key}
-							name={field.key}
-							control={control}
-							rules={{
-								required: field.required ? `${field.label} is required` : false,
-								validate: (val: any) => {
-									if (['imei1', 'imei2'].includes(field.key)) {
-										if (!val) return `${field.label} is required`;
-										if (!/^[0-9]{15}$/.test(val)) return `${field.label} must be 15 digits`;
-									}
-									if (field.key === 'pincode') {
-										if (!val) return `${field.label} is required`;
-										if (val?.length !== 6) return `${field.label} should be 6 digits`;
-									}
-									return true;
-								},
-							}}
-							value={field.value}
-							placeholder={field.label}
-							error={errors[field.key]}
-							readonly={field.readonly}
-							keyboardType={field.keyboardType || field.type}
-							inputStyle={field.key === 'address' ? { height: getHeight(100) } : undefined}
-							onChangeText={e => updateField(field, e)}
+							key={formField.key}
+							value={formField.value}
+							maxLength={formField.maxLength}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							placeholder={formField.label}
+							error={errors[formField.key]}
+							secureTextEntry={false}
+							keyboardType={formField.keyboardType || formField.type}
+							style={styles.container}
+							inputStyle={formField.key === 'address' ? { height: getHeight(100) } : undefined}
+							readonly={formField.readonly}
+							icon={formField.showIcon}
+							formData={formFieldStructure}
+							autoCapitalize={formField.autoCapitalize}
+							autoCorrect={formField.autoCorrect}
 						/>
 					);
 
 				case 'textArea':
 					return (
 						<TextArea
-							key={field.key}
-							name={field.key}
-							control={control}
-							rules={{ required: field.required ? `${field.label} is required` : false }}
-							value={field.value}
-							placeholder={field.label}
-							error={errors[field.key]}
-							onChangeText={(e: any) => updateField(field, e)}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							placeholder={formField.label}
+							style={styles.container}
+							error={errors[formField.key]}
 						/>
 					);
 
 				case 'phonenumber':
 					return (
 						<PhoneNumber
-							key={field.key}
-							control={control}
-							rules={{
-								required: field.required ? `${field.label} is required` : false,
-							}}
-							onChangeText={(e: any, key: any) => updateField(field, e, key)}
-							error={errors[field.key]}
+							key={formField.key}
+							onChangeText={(e: any, key: string | null | undefined) =>
+								onChangeText(e, formField, formField.key, key, parentKey)
+							}
+							error={errors[formField.key]}
 							value={{
-								countryCode: field.key === 'phoneNumber'
-									? field.value?.countryCode
-									: field.value?.alternateCountryCode,
-								phoneNumber: field.key === 'phoneNumber'
-									? field.value?.phoneNumber
-									: field.value?.alternateNumber,
+								countryCode:
+									formField.key === 'phoneNumber'
+										? formField.value['countryCode']
+										: formField.value['alternateCountryCode'],
+								phoneNumber:
+									formField.key === 'phoneNumber'
+										? formField.value['phoneNumber']
+										: formField.value['alternateNumber'],
 							}}
-							placeholder={field.label}
+							placeholder={formField.label}
 							name={{
-								countryCode: field.key === 'phoneNumber'
-									? 'countryCode'
-									: 'alternateCountryCode',
-								phoneNumber: field.key === 'phoneNumber'
-									? 'phoneNumber'
-									: 'alternateNumber',
+								countryCode:
+									formField.key === 'phoneNumber'
+										? 'countryCode'
+										: 'alternateCountryCode',
+								phoneNumber:
+									formField.key === 'phoneNumber'
+										? 'phoneNumber'
+										: 'alternateNumber',
 							}}
-							readonly={field.readonly}
-							maxLength={field.maxLength}
+							readonly={formField.readonly}
+							maxLength={formField.maxLength}
+						/>
+					);
+
+				case 'countrySelection':
+					return (
+						<CountryPicker
+							key={formField.key}
+							onChangeText={(e: any, key: string) => onChangeText(e, formField, formField.key, key, parentKey)}
+							value={formField.value}
+							error={errors[formField.key]}
+							readonly={formField.readonly}
+							style={styles.container}
+						/>
+					);
+
+				case 'stateSelection':
+					return (
+						<StatePicker
+							key={formField.key}
+							onChangeText={(e: any, key: string) => onChangeText(e, formField, formField.key, key, parentKey)}
+							value={formField.value}
+							error={errors[formField.key]}
+							readonly={formField.readonly}
+							parentValue={formFieldStructure.find((f: any) => f.key === 'country')?.value}
+							style={styles.container}
+						/>
+					);
+
+				case 'citySelection':
+					return (
+						<CityPicker
+							key={formField.key}
+							onChangeText={(e: any, key: string) => onChangeText(e, formField, formField.key, key, parentKey)}
+							value={formField.value}
+							error={errors[formField.key]}
+							readonly={formField.readonly}
+							parentValue={{
+								country: formFieldStructure.find((f: any) => f.key === 'country')?.value,
+								state: formFieldStructure.find((f: any) => f.key === 'state')?.value,
+							}}
+							style={styles.container}
 						/>
 					);
 
 				case 'dropdown':
 					return (
 						<Dropdown
-							key={field.key}
-							control={control}
-							name={field.key}
-							options={field.options || []}
-							multiple={field.multiple}
-							value={field.value}
-							error={errors[field.key]}
-							listModal={field.listModal}
-							search={field.search}
-							apiDetails={field.apiDetails}
-							placeholder={field.label}
-							readonly={field.readonly}
-							onChangeText={(e: any) => updateField(field, e)}
+							key={formField.key}
+							options={formField.options || []}
+							multiple={formField.multiple}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							onChangeFullText={(e: any) => { formField.data = e; }}
+							error={errors[formField.key]}
+							readonly={formField.readonly}
+							listModal={formField.listModal}
+							search={formField.search}
+							apiDetails={formField.apiDetails}
+							placeholder={formField.label}
+							style={styles.container}
 						/>
 					);
 
 				case 'date':
 					return (
 						<Datepicker
-							key={field.key}
-							value={field.value}
-							error={errors[field.key]}
-							onChangeText={(e: any) => updateField(field, e)}
-							readonly={field.readonly}
-							maxDate={field.maxDate}
-							minDate={field.minDate}
-							placeholder={field.placeholder || field.label}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							error={errors[formField.key]}
+							readonly={formField.readonly}
+							maxDate={formField.maxDate}
+							placeholder={formField.placeholder}
+							minDate={formField.minDate}
+							style={styles.container}
 						/>
 					);
 
 				case 'file':
 					return (
 						<Uploader
-							key={field.key}
-							value={field.value}
-							onChangeText={(e: any) => updateField(field, e)}
-							readonly={field.readonly}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							readonly={formField.readonly}
 						/>
 					);
 
 				case 'barcode':
 					return (
 						<BarcodeInput
-							key={field.key}
-							control={control}
-							value={field.value}
-							onChangeText={(e: any) => updateField(field, e)}
-							placeholder={field.label}
-							name={field.name}
-							readonly={field.readonly}
-							error={errors[field.key]}
-							iconReadonly={field.iconReadonly}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							placeholder={formField.label}
+							readonly={formField.readonly}
+							error={errors[formField.key]}
+							iconReadonly={formField.iconReadonly}
+							style={styles.container}
 						/>
 					);
 
 				case 'checkbox':
 					return (
 						<Checkbox
-							key={field.key}
-							value={field.value}
-							label={field.label}
-							onChangeText={(e: any) => updateField(field, e)}
-							readonly={field.readonly}
-							error={errors[field.key]}
-							terms={field.terms}
-							border={field.border}
+							key={formField.key}
+							value={formField.value}
+							label={formField.label}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							readonly={formField.readonly}
+							terms={formField.terms}
+							border={formField.border}
+							error={errors[formField.key]}
 						/>
 					);
 
 				case 'signaturePad':
 					return (
 						<SignPad
-							key={field.key}
-							value={field.value}
-							onChangeText={(e: any) => updateField(field, e)}
-							readonly={field.readonly}
-							label={field.label}
-							error={errors[field.key]}
-							name={field.key}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							readonly={formField.readonly}
+							label={formField.label}
+							error={errors[formField.key]}
+							name={formField.key}
+							style={styles.container}
 						/>
 					);
 
 				case 'orderInput':
 					return (
 						<OrderInput
-							key={field.key}
-							readonly={field.readonly}
-							label={field.label}
-							price={field.price}
-							discount={field.discount}
-							value={field.value}
-							onChangeText={(e: any) => updateField(field, e)}
-							features={field.features}
-							index={index}
+							key={formField.key}
+							readonly={formField.readonly}
+							label={formField.label}
+							price={formField.price}
+							discount={formField.discount}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							features={formField.features}
+
 						/>
 					);
+
+				case 'uploadPicker':
+					if (formField.multiple && formField.no_of_frames) {
+						return (
+							<View key={formField.key} style={{ marginBottom: 10 }}>
+								{formField.label ? <Text style={{ marginBottom: 5, color: '#333', fontWeight: '500' }}>{formField.label}</Text> : null}
+								<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+									{Array.from({ length: formField.no_of_frames }).map((_, idx) => (
+										<UploadPicker
+											key={`${formField.key}-${idx}`}
+											// name={formField.key}
+											width={formField.width}
+											height={formField.height}
+											imageOrVideo={formField.imageOrVideo}
+											value={formField.value?.[idx] || null}
+											onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey, idx)}
+											readonly={formField.readonly}
+											error={errors[formField.key]}
+											caption={formField.caption}
+											maxSize={formField.maxSize}
+										/>
+									))}
+								</ScrollView>
+							</View>
+						);
+					} else {
+						return (
+							<UploadPicker
+								key={formField.key}
+								width={formField.width}
+								height={formField.height}
+								label={formField.label}
+								imageOrVideo={formField.imageOrVideo}
+								value={formField.value}
+								onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+								readonly={formField.readonly}
+								error={errors[formField.key]}
+								caption={formField.caption}
+								maxSize={formField.maxSize}
+							/>
+						);
+					}
 
 				case 'time':
 					return (
 						<TimePicker
-							key={field.key}
-							value={field.value}
-							onChangeText={(e: any) => updateField(field, e)}
-							label={field.label}
+							key={formField.key}
+							value={formField.value}
+							onChangeText={(e: any) => onChangeText(e, formField, formField.key, null, parentKey)}
+							label={formField.label}
 						/>
 					);
 
+				case 'twoColumn':
+					if (formField.component) {
+						const length = formField.component.length;
+						return (
+							<View
+								key={formField.key}
+								style={[
+									styles.twoColumn,
+									commonStyle.mb10,
+								]}
+							>
+								{formField.component.map((comp: any) => {
+									console.log(
+										'ME52RETAILERTESTING',
+										'Find nested component ',
+										comp.key,
+										' value: ',
+										comp.value,
+										' type: ',
+										comp.type,
+									);
+
+									switch (comp.type) {
+										case 'countrySelection':
+											return (
+												<View
+													style={[length === 2 ? styles.width48 : styles.width25]}
+													key={comp.key}
+												>
+													<CountryPicker
+														onChangeText={(e, key) =>
+															onChangeText(e, comp, comp.key, key, formField.key)
+														}
+														value={comp.value}
+														error={errors[comp.key]}
+														readonly={comp.readonly}
+													/>
+												</View>
+											);
+
+										case 'stateSelection':
+											return (
+												<View
+													style={[length === 2 ? styles.width48 : styles.width25]}
+													key={comp.key}
+												>
+													<StatePicker
+														onChangeText={(e, key) =>
+															onChangeText(e, comp, comp.key, key, formField.key)
+														}
+														value={comp.value}
+														error={errors[comp.key]}
+														readonly={comp.readonly}
+														parentValue={formFieldStructure.find((f: any) => f.key === 'country')?.value}
+													/>
+												</View>
+											);
+
+										case 'citySelection':
+											return (
+												<View
+													key={comp.key}
+													style={[length === 2 ? styles.width48 : styles.width25]}
+												>
+													<CityPicker
+														onChangeText={(e: any, key: string | null | undefined) =>
+															onChangeText(e, comp, comp.key, key, formField.key)
+														}
+														value={comp.value}
+														defaultValue={comp.value}
+														error={errors[comp.key]}
+														readonly={comp.readonly}
+														parentValue={{
+															country: formFieldStructure?.find((f: any) => f.key === 'country')?.value,
+															state: formFieldStructure?.find((f: any) => f.key === 'state')?.value,
+														}}
+													/>
+												</View>
+											);
+
+										case 'text':
+										case 'number':
+											return (
+												<View
+													style={[length === 2 ? styles.width48 : styles.width25]}
+													key={comp.key}
+												>
+													<Input
+														value={comp.value}
+														onChangeText={(e) =>
+															onChangeText(e, comp, comp.key, null, formField.key)
+														}
+														placeholder={comp.label}
+														error={errors[comp.key]}
+														secureTextEntry={false}
+														keyboardType={comp.type}
+														readonly={comp.readonly}
+													/>
+												</View>
+											);
+
+										case 'dropdown':
+											return (
+												<View
+													style={[
+														length === 2 ? styles.width48 : styles.width25,
+														 {width: '48%' },
+													]}
+													key={comp.key}
+												>
+													<Dropdown
+														options={comp.options ? comp.options : []}
+														multiple={comp.multiple}
+														value={comp.value}
+														onChangeText={(e) => {
+															console.log('onChangeText>>>', comp.options);
+															onChangeText(e, comp, comp.key, null, formField.key);
+														}}
+														onChangeFullText={(e) => {
+															comp.data = e;
+															console.log('onChangeFullText>>>', e);
+														}}
+														style={styles.container}
+														error={errors[comp.key]}
+														listModal={comp.listModal}
+														search={comp.search}
+														apiDetails={comp.apiDetails}
+														placeholder={comp.label}
+														readonly={comp.readonly}
+													/>
+												</View>
+											);
+
+										case 'date':
+											return (
+												<View
+													style={[
+														length === 2 ? styles.width48 : styles.width25,
+														{ marginTop: 5 },
+													]}
+													key={comp.key}
+												>
+													<Datepicker
+														value={comp.value}
+														error={errors[comp.key]}
+														onChangeText={(e) =>
+															onChangeText(e, comp, comp.key, null, formField.key)
+														}
+														readonly={comp.readonly}
+														maxDate={comp.maxDate}
+														minDate={comp.minDate}
+														placeholder={comp.label}
+													/>
+												</View>
+											);
+
+										case 'file':
+											return (
+												<View
+													style={[length === 2 ? styles.width48 : styles.width25]}
+													key={comp.key}
+												>
+													<UploadPicker
+														width={comp.width}
+														height={comp.height}
+														imageOrVideo={'image'}
+														label={comp.label}
+														value={comp.value}
+														onChangeText={(e) =>
+															onChangeText(e, comp, comp.key, null, formField.key)
+														}
+														readonly={comp.readonly}
+														error={errors[comp.key]}
+														caption={comp.caption}
+														maxSize={comp.maxSize}
+													/>
+												</View>
+											);
+
+										case 'time':
+											return (
+												<View
+													style={[
+														length === 2 ? styles.width48 : styles.width25,
+														commonStyle.mt5,
+													]}
+													key={comp.key}
+												>
+													<TimePicker
+														value={comp.value}
+														onChangeText={(e) =>
+															onChangeText(e, comp, comp.key, null, formField.key)
+														}
+														placeholder={comp.label}
+													/>
+												</View>
+											);
+
+										case 'textArea':
+											return (
+												<View
+													style={[length === 2 ? styles.width48 : styles.width25]}
+													key={comp.key}
+												>
+													<TextArea
+														value={comp.value}
+														onChangeText={(e) =>
+															onChangeText(e, comp, comp.key)
+														}
+														placeholder={comp.label}
+														style={styles.container}
+														error={errors[comp.key]}
+													/>
+												</View>
+											);
+
+										default:
+											return null;
+									}
+								})}
+							</View>
+						);
+					}
+					return null;
 				default:
 					return null;
 			}
-		});
-	}, [formFieldStructure, errors, control, updateField]);
+		};
+
+		return (
+			<>
+				{formFieldStructure.map((field: any) => (
+					<React.Fragment key={field.key}>{renderFormField(field)}</React.Fragment>
+				))}
+			</>
+		);
+	}, [formFieldStructure, errors]);
+
+
 
 	return (
 		<CRootContainer style={styles.card}>
@@ -1325,17 +1522,9 @@ const AddCustomerScreen = ({
 					nestedScrollEnabled
 					keyboardShouldPersistTaps="handled"
 				>
-					<Forms
-						formFields={formFieldStructure}
-						formState={formFieldStructure}
-						setFormState={setFormFieldStructure}
-						updateFormData={updateFormData}
-						errors={errors}
-						setErrors={setErrors}
-						isCheckError={true}
-						shouldHideFields={hideFieldsBelowKeyType}
-						contentContainerStyle={commonStyle.ph25}
-					/>
+					<View style={commonStyle.ph25}>
+						{renderFields}
+					</View>
 					<View style={commonStyle.mh25}>
 						<Button
 							variant="darker"
@@ -1357,8 +1546,8 @@ const styles = StyleSheet.create({
 	card: {
 		flex: 1,
 		width: '100%',
-		// paddingLeft: 10,
-		// paddingRight: 10,
+		paddingLeft: 10,
+		paddingRight: 10,
 	},
 	headerRow: {
 		flexDirection: 'row',
@@ -1417,5 +1606,23 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		textAlign: 'center',
 		fontWeight: '500',
+	},
+	container: {
+		...commonStyle.mt5,
+		...commonStyle.mb20,
+		zIndex: -5,
+	},
+	twoColumn: {
+		width: '100%',
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		// gap: moderateScale(15),
+
+	},
+	width48: {
+		width: '48%',
+	},
+	width25: {
+		width: '31%',
 	},
 });

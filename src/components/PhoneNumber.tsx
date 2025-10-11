@@ -19,7 +19,7 @@ interface PhoneumberProps {
   error?: string;
   placeholder: string;
   onChangeText?: any;
-  value: {
+  value?: {
     countryCode: any;
     phoneNumber: string;
   };

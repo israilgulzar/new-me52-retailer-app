@@ -1,24 +1,29 @@
-import React from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, ListRenderItem } from 'react-native';
-import useKeys, { KeyItem } from '../hooks/useKeys';
-import { capitalizeName } from '../utility/helpers';
-import CrossBox from '../assets/cross2.svg';
-import CheckWithoutBorder from '../assets/check-svgrepo-com 1.svg';
-import { useTheme } from '../theme/ThemeProvider';
-import { commonStyle } from '../theme';
-import CRootContainer from '../components/CRootContainer';
-import CHeader from '../components/CHeader';
-import Footer from '../components/Footer';
-import Loader from '../components/Loader';
-import NoDataFound from '../components/NoDataFound';
-import { moderateScale } from '../common/constants';
+import React from "react";
+import { View, Text, FlatList, StyleSheet, ListRenderItem } from "react-native";
+
+import CrossBox from "../assets/cross2.svg";
+import CheckWithoutBorder from "../assets/check-svgrepo-com 1.svg";
+
+import { useTheme } from "../theme/ThemeProvider";
+import { commonStyle } from "../theme";
+
+import CRootContainer from "../components/CRootContainer";
+import CHeader from "../components/CHeader";
+import Footer from "../components/Footer";
+import Loader from "../components/Loader";
+import NoDataFound from "../components/NoDataFound";
+
+import useKeys, { KeyItem } from "../hooks/useKeys";
+
+import { capitalizeName } from "../utility/helpers";
+import { moderateScale } from "../common/constants";
 
 const featureKeyLabel = [
     { key: "image_notification", label: "Image Notification" },
     { key: "location_tracking", label: "Location Tracking" },
     { key: "sim_tracking", label: "SIM Tracking" },
     { key: "video_notification", label: "Video Notification" },
-    { key: "phone_block", label: "Phone Block" }
+    { key: "phone_block", label: "Phone Block" },
 ];
 
 const ListKeys: React.FC = () => {
@@ -29,7 +34,6 @@ const ListKeys: React.FC = () => {
         return (
             <View style={styles.loader}>
                 <Loader />
-                {/* <Text style={styles.loadingText}>Loading keys...</Text> */}
             </View>
         );
     }
@@ -43,42 +47,32 @@ const ListKeys: React.FC = () => {
     }
 
     const renderItem: ListRenderItem<KeyItem> = ({ item }: any) => {
-        const { name, price, discount, tax } = item.keytype;
+        const { name } = item.keytype;
 
         return (
             <View style={[styles.card, { backgroundColor: colors.card }]}>
-                {/* Key Name */}
-                <Text style={[styles.keyTitle, { color: colors.text }]}>{capitalizeName(name)}</Text>
+                <Text style={[styles.keyTitle, { color: colors.text }]}>
+                    {capitalizeName(name)}
+                </Text>
 
-                {/* Two Column Details */}
                 <View style={styles.detailsRow}>
                     <View style={styles.detailBox}>
-                        <Text style={[styles.detailLabel, { color: colors.textDark }]}>Available</Text>
-                        <Text style={[styles.detailValue, { color: colors.text }]}>{item.count || 'N/A'}</Text>
+                        <Text style={[styles.detailLabel, { color: colors.textDark }]}>
+                            Available
+                        </Text>
+                        <Text style={[styles.detailValue, { color: colors.text }]}>
+                            {item.count || "N/A"}
+                        </Text>
                     </View>
-                    {/* <View style={styles.detailBox}>
-                        <Text style={[styles.detailLabel, { color: colors.textDark }]}>Price</Text>
-                        <Text style={[styles.detailValue, { color: colors.text }]}>₹{price || 'N/A'}</Text>
-                    </View> */}
                 </View>
-                {/* <View style={styles.detailsRow}>
-                    <View style={styles.detailBox}>
-                        <Text style={[styles.detailLabel, { color: colors.textDark }]}>Discount</Text>
-                        <Text style={[styles.detailValue, { color: colors.text }]}>{discount || 0}%</Text>
-                    </View>
-                    <View style={styles.detailBox}>
-                        <Text style={[styles.detailLabel, { color: colors.textDark }]}>Tax</Text>
-                        <Text style={[styles.detailValue, { color: colors.text }]}>{tax}%</Text>
-                    </View>
-                </View> */}
 
-                {/* Feature Title */}
-                <Text style={[styles.featureTitle, { color: colors.textLight }]}>Features</Text>
+                <Text style={[styles.featureTitle, { color: colors.textLight }]}>
+                    Features
+                </Text>
 
-                {/* Features */}
                 <View>
                     {featureKeyLabel.map((feat) => {
-                        const active: any = item?.keytype[feat.key];
+                        const active = item?.keytype?.[feat.key];
                         return (
                             <View style={styles.featureHeader} key={feat.key}>
                                 {active ? (
@@ -88,10 +82,12 @@ const ListKeys: React.FC = () => {
                                 ) : (
                                     <CrossBox width={18} height={18} />
                                 )}
-                                <Text style={[
-                                    styles.featureText,
-                                    { color: active ? "#F39314" : "#8F999E" }
-                                ]}>
+                                <Text
+                                    style={[
+                                        styles.featureText,
+                                        { color: active ? "#F39314" : "#8F999E" },
+                                    ]}
+                                >
                                     {feat.label}
                                 </Text>
                             </View>
@@ -111,7 +107,7 @@ const ListKeys: React.FC = () => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.list}
                 ListFooterComponent={<Footer />}
-                ListEmptyComponent={<NoDataFound label='No keys found' />}
+                ListEmptyComponent={<NoDataFound label="No keys found" />}
                 showsVerticalScrollIndicator={false}
             />
         </CRootContainer>
@@ -123,51 +119,46 @@ export default ListKeys;
 const styles = StyleSheet.create({
     loader: {
         flex: 1,
-        ...commonStyle.pv20,
         ...commonStyle.center,
-    },
-    loadingText: {
-        marginTop: 10,
-        fontSize: 16,
-        color: '#555',
+        ...commonStyle.pv20,
     },
     errorBox: {
         ...commonStyle.p15,
         ...commonStyle.m15,
-        backgroundColor: '#ffebeb',
+        backgroundColor: "#ffebeb",
         borderRadius: moderateScale(8),
     },
     errorText: {
-        color: '#b00020',
+        color: "#b00020",
         fontSize: 16,
     },
     list: {
-        ...commonStyle.ph25
+        ...commonStyle.ph25,
     },
     card: {
         borderRadius: moderateScale(14),
         ...commonStyle.p15,
         ...commonStyle.mb15,
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOpacity: 0.08,
         shadowOffset: { width: 0, height: 2 },
         shadowRadius: 5,
-        elevation: .2,
+        elevation: 0.2,
     },
     keyTitle: {
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: "700",
         ...commonStyle.mb10,
     },
     detailsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: "row",
+        justifyContent: "space-between",
         ...commonStyle.mb5,
     },
     detailBox: {
         flex: 1,
-        width: '100%',
-        backgroundColor: '#ebebebff',
+        width: "100%",
+        backgroundColor: "#ebebebff",
         ...commonStyle.p10,
         borderRadius: moderateScale(8),
     },
@@ -177,11 +168,11 @@ const styles = StyleSheet.create({
     },
     detailValue: {
         fontSize: 15,
-        fontWeight: '600',
+        fontWeight: "600",
     },
     featureTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: "600",
         ...commonStyle.mb10,
         ...commonStyle.mt15,
     },
@@ -193,7 +184,7 @@ const styles = StyleSheet.create({
     },
     featureText: {
         fontSize: 14,
-        ...commonStyle.pl10
+        ...commonStyle.pl10,
     },
     activeBox: {
         borderWidth: 0.8,
@@ -204,5 +195,5 @@ const styles = StyleSheet.create({
         backgroundColor: "#F3931454",
         justifyContent: "center",
         alignItems: "center",
-    }
+    },
 });

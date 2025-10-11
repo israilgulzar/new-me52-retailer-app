@@ -1,54 +1,42 @@
-import { useTheme } from '../theme/ThemeProvider';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, ImageBackground } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
+  View,
+  Text,
   FlatList,
   StyleSheet,
-  Text,
-  RefreshControl,
   TouchableOpacity,
-  View,
-} from 'react-native';
-import { SCREEN_HEIGHT, SCREEN_WIDTH } from '../constant';
-import { useAuth } from '../context/AuthContext';
-import Button from '../components/Button';
-import { Card } from '../components/Card';
-import { deleteOrder, getlistOrder } from '../services/orders';
-import NoDataFound from '../components/NoDataFound';
-import Loader from '../components/Loader';
-import ModalME52 from '../components/Modal';
-import HeaderLeft from '../components/HeaderLeft';
-import SearchInput from '../components/SearchInput';
-import CaretDown from '../assets/caret-down.svg';
-import CaretUp from '../assets/caret-up.svg';
-import { SCREENS } from '../navigation/screens';
-import { OrderStackParamList } from '../navigation/AppNavigator';
-import { dateToString, scaleSM, verticalScaleSM } from '../utility/helpers';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Footer from '../components/Footer';
-import AddIcon from '../assets/add_black_icon.svg';
-import FilterI from '../assets/filter.svg';
-import { boxShadow } from '../styles/styles';
-import {
-  Menu,
-  MenuOption,
-  MenuOptions,
-  MenuTrigger,
-} from 'react-native-popup-menu';
-import {
-  BottomSheetBackdrop,
-  BottomSheetBackdropProps,
-  BottomSheetModal,
-  BottomSheetScrollView,
-} from '@gorhom/bottom-sheet';
+  RefreshControl,
+  Dimensions,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { BottomSheetBackdrop, BottomSheetBackdropProps, BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import DateRangeInput from '../components/DateRangeCalendars';
-import { moderateScale } from '../common/constants';
-import CHeader from '../components/CHeader';
-import CRootContainer from '../components/CRootContainer';
-import { commonStyle } from '../theme';
-import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from "../theme/ThemeProvider";
+import { useAuth } from "../context/AuthContext";
+import { commonStyle } from "../theme";
+
+import CRootContainer from "../components/CRootContainer";
+import CHeader from "../components/CHeader";
+import Footer from "../components/Footer";
+import Loader from "../components/Loader";
+import NoDataFound from "../components/NoDataFound";
+import ModalME52 from "../components/Modal";
+import Button from "../components/Button";
+import { Card } from "../components/Card";
+import SearchInput from "../components/SearchInput";
+import DateRangeInput from "../components/DateRangeCalendars";
+
+import AddIcon from "../assets/add_black_icon.svg";
+import FilterI from "../assets/filter.svg";
+
+import { deleteOrder, getlistOrder } from "../services/orders";
+import { dateToString } from "../utility/helpers";
+import { SCREENS } from "../navigation/screens";
+import { OrderStackParamList } from "../navigation/AppNavigator";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../constant";
+import { boxShadow } from "../styles/styles";
+import { moderateScale } from "../common/constants";
 
 type STATUS = 'LOADING' | 'SUCCESS' | 'ERROR' | 'NO_DATA';
 

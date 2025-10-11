@@ -41,25 +41,23 @@ const CityPicker = ({ error, onChangeText, value, readonly, parentValue, style, 
   const { colors, theme } = useTheme()
 
   useEffect(() => {
-    // setTimeout(() => {
     if (parentValue?.country && parentValue.state) {
       const allCities = City.getCitiesOfState(parentValue.country as string, parentValue.state as string).map((c) => ({
         label: c.name,
         value: c.name,
       }));
 
-      // console.log('ME52RETAILERTESTING', "All cities ", allCities, "value ", value)
-      if (value && typeof value == "string") {
-        const city = allCities.find((allcity) => allcity.value.toLowerCase().trim() == value.toLowerCase().trim())
-        console.log('ME52RETAILERTESTING', "City value from options ", city)
-        if (city) {
-          setSelectedCity(city.value)
-        }
-      }
       setCities(allCities && allCities.length !== 0 ? allCities : [{ label: "No City", value: undefined, disabled: true }]);
     }
-    // }, 1150)
-  }, [parentValue?.country, parentValue?.state])
+  }, [parentValue?.country, parentValue?.state]);
+
+  // ✅ New: keep selectedCity in sync with prop `value`
+  useEffect(() => {
+    if (value && typeof value === "string") {
+      setSelectedCity(value);
+    }
+  }, [value]);
+
 
   const loadCity = (selectedCount: string, selectedSta: string) => {
 
@@ -84,7 +82,7 @@ const CityPicker = ({ error, onChangeText, value, readonly, parentValue, style, 
       <Controller
         control={control}
         name={name}
-        defaultValue={defaultValue || ''}
+        defaultValue={value || ''}
         rules={rules}
         render={({ field: { onChange, value } }) => (
           <View style={[styles.container]}>

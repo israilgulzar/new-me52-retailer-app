@@ -1,23 +1,9 @@
 import { memo, useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../theme/ThemeProvider"
 import Button from "../components/Button"
 import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../constant"
-import Uninstalled from "../assets/uninstall.svg"
 import DateRangeInput from "../components/DateRangeCalendars"
-import { scaleSM } from "../utility/helpers"
-import { boxShadow } from "../styles/styles"
-
-import ActiveUser from "../assets/active.svg"
-import InactiveUser from "../assets/inactive.svg"
-import Lockfilter from "../assets/lock_filter.svg"
-import LockfilterWhite from "../assets/lock_filter_white.svg"
-import Unlockfilter from "../assets/unlock_filter.svg"
-import UnlockfilterWhite from "../assets/unlock_filter_white.svg"
-import AllFilterWhite from "../assets/menu_all_white.svg"
-import AllFilter from "../assets/menu_all.svg"
-
-import Forms from "../components/Forms"
 import { USER_FILE_FORM } from "./userData"
 import { getHeight, moderateScale } from "../common/constants";
 import { commonStyle } from "../theme";

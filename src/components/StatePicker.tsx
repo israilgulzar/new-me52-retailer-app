@@ -10,7 +10,7 @@ import { scaleSM } from '../utility/helpers';
 import { Controller } from 'react-hook-form';
 interface StatePickerProps {
 	control?: any;
-	value: string
+	value?: string
 	error?: string
 	name?: string
 	style?: ViewStyle
@@ -18,7 +18,7 @@ interface StatePickerProps {
 	parentValue: string
 	rules?: any;
 	defaultValue?: any;
-	onChangeText: (text: any, key: string) => void
+	onChangeText?: (text: any, key: string) => void
 }
 
 const StatePicker = ({ error, onChangeText, value, readonly, parentValue, control,

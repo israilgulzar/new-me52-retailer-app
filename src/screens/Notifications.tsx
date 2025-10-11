@@ -4,29 +4,29 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/core';
-import { useTheme } from '../theme/ThemeProvider';
-
+import { useNavigation, useFocusEffect, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import { useTheme } from '../theme/ThemeProvider';
+import { commonStyle } from '../theme';
+import { moderateScale } from '../common/constants';
+
 import CRootContainer from '../components/CRootContainer';
 import CHeader from '../components/CHeader';
 import Footer from '../components/Footer';
 import NoDataFound from '../components/NoDataFound';
-import { moderateScale } from '../common/constants';
-import { commonStyle } from '../theme';
-import useNotifications from '../hooks/useNotifications';
-import { SCREENS } from '../navigation/screens';
 import Loader from '../components/Loader';
-import useSocket from "../hooks/useSocket";
-import { useFocusEffect, NavigationProp } from '@react-navigation/native';
+
+import useNotifications from '../hooks/useNotifications';
+import useSocket from '../hooks/useSocket';
+import { SCREENS } from '../navigation/screens';
 
 const Notifications = () => {
-
   const navigation = useNavigation<NavigationProp<any>>();
+  const { colors } = useTheme();
   const { socket } = useSocket();
 
   const {
@@ -37,23 +37,17 @@ const Notifications = () => {
     loadMore,
     markAllAsRead,
   } = useNotifications();
-  const { colors } = useTheme();
 
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-
-    const onMessage = () => loadInitial()
-
-    socket.on("chatMessage", onMessage);
-
+    const onMessage = () => loadInitial();
+    socket.on('chatMessage', onMessage);
     return () => {
-      socket.off("chatMessage", onMessage);
+      socket.off('chatMessage', onMessage);
     };
-
   }, []);
 
-  // Load first page on mount
   useFocusEffect(
     useCallback(() => {
       loadInitial();
@@ -62,22 +56,20 @@ const Notifications = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadInitial(); // reload notifications
+    await loadInitial();
     setRefreshing(false);
   };
 
   const routeToPage = (notification: any) => {
-    console.log("routeToPage");
-    console.log(notification);
-
     if (notification?.navigation?.includes('orders')) {
       const items = notification?.navigation?.split('/');
       const orderId = items[items.length - 1];
-      if (orderId)
+      if (orderId) {
         navigation.navigate(SCREENS.Order, {
           screen: SCREENS.ViewOrder,
           params: { orderId, viewOnly: true },
         });
+      }
     } else {
       navigation.navigate(SCREENS.Message, {
         message: { message: JSON.stringify(notification) },
@@ -89,6 +81,7 @@ const Notifications = () => {
     const now = new Date();
     const past = new Date(dateString);
     const diffMs = now.getTime() - past.getTime();
+
     const diffSec = Math.floor(diffMs / 1000);
     const diffMin = Math.floor(diffSec / 60);
     const diffHr = Math.floor(diffMin / 60);
@@ -106,7 +99,6 @@ const Notifications = () => {
 
   const renderNotificationCard = ({ item }: { item: any }) => {
     const isNew = !item.read;
-
     const badgeColors = {
       backgroundColor: isNew ? '#F3931444' : '#7CD42B44',
       color: isNew ? '#F39314' : '#2E3B2E',
@@ -115,7 +107,11 @@ const Notifications = () => {
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        style={{ width: '98%', marginBottom: moderateScale(12), marginHorizontal: '1%' }}
+        style={{
+          width: '98%',
+          marginBottom: moderateScale(12),
+          marginHorizontal: '1%',
+        }}
         onPress={() => routeToPage(item)}
       >
         <View
@@ -125,14 +121,28 @@ const Notifications = () => {
           ]}
         >
           <View style={styles.cardHeader}>
-            <Text style={{ ...styles.title, color: colors.text }}>{item.title}</Text>
+            <Text style={{ ...styles.title, color: colors.text }}>
+              {item.title}
+            </Text>
             {isNew && (
-              <View style={[styles.badge, { backgroundColor: badgeColors.backgroundColor }]}>
-                <Text style={[styles.badgeText, { color: badgeColors.color }]}>NEW</Text>
+              <View
+                style={[
+                  styles.badge,
+                  { backgroundColor: badgeColors.backgroundColor },
+                ]}
+              >
+                <Text style={[styles.badgeText, { color: badgeColors.color }]}>
+                  NEW
+                </Text>
               </View>
             )}
           </View>
-          <Text style={styles.description} numberOfLines={2} ellipsizeMode="tail">
+
+          <Text
+            style={styles.description}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
             {item.description}
           </Text>
           <Text style={styles.date}>{getRelativeTime(item.createdAt)}</Text>
@@ -141,40 +151,47 @@ const Notifications = () => {
     );
   };
 
-  const RenderFooter = () => {
-    return (
-      <View >
-        {loading ? <Loader /> : null}
-        <Footer />
-      </View>
-    )
-  }
+  const RenderFooter = () => (
+    <View>
+      {loading && <Loader />}
+      <Footer />
+    </View>
+  );
 
   return (
-    <CRootContainer style={{ ...commonStyle.flex, ...commonStyle.pb10, ...commonStyle.ph25 }}>
+    <CRootContainer
+      style={{
+        ...commonStyle.flex,
+        ...commonStyle.pb10,
+        ...commonStyle.ph25,
+      }}
+    >
       <CHeader title="Notifications" />
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
-      {notifications && notifications.length > 0 && notifications[0].read === false && (
-        <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={styles.markAllButton}
-            onPress={() => markAllAsRead({})}
-          >
-            <Icon
-              name="check-all"
-              size={moderateScale(20)}
-              color="#fff"
-              style={{ marginRight: moderateScale(8) }}
-            />
-            <Text style={styles.markAllText}>Mark All As Read</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
+      {error && <Text style={{ color: 'red' }}>{error}</Text>}
+
+      {notifications &&
+        notifications.length > 0 &&
+        notifications[0].read === false && (
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              style={styles.markAllButton}
+              onPress={() => markAllAsRead({})}
+            >
+              <Icon
+                name="check-all"
+                size={moderateScale(20)}
+                color="#fff"
+                style={{ marginRight: moderateScale(8) }}
+              />
+              <Text style={styles.markAllText}>Mark All As Read</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       <FlatList
         data={notifications}
-        keyExtractor={item => item._id}
+        keyExtractor={(item) => item._id}
         renderItem={renderNotificationCard}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
@@ -183,12 +200,14 @@ const Notifications = () => {
         ListEmptyComponent={<NoDataFound label="No Notifications Found" />}
         contentContainerStyle={commonStyle.flexGrow1}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.darker]}   // Android spinner color
-            tintColor={colors.darker} // iOS spinner color 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.darker]}
+            tintColor={colors.darker}
           />
         }
       />
-
     </CRootContainer>
   );
 };
