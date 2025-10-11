@@ -110,9 +110,9 @@ const SignPad: React.FC<SignPadProps> = ({ label, value, onChangeText, error, re
 						descriptionText="Sign above"
 						clearText="Clear"
 						confirmText="OK"
+						backgroundColor="rgba(0,0,0,0)"
 						dataURL={value || ""}   // 👈 preload signature if exists
 					/>
-
 					<View style={styles.buttonContainer}>
 						<TouchableOpacity style={styles.refreshButton} onPress={handleClear} activeOpacity={0.8}>
 							<Image source={require("../assets/refresh.png")} style={{ width: moderateScale(28), height: moderateScale(28) }} />
@@ -193,7 +193,7 @@ const padStyle = `
   }
   .m-signature-pad--footer { display: none !important; }
   canvas {
-    background-color: rgba(217, 217, 217, 1) !important;
+    background-color: rgba(0, 0, 0, 0) !important;
     height: 100% !important;
     width: 100% !important;
     border: none;
